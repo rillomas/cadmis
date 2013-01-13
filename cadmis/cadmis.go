@@ -8,10 +8,19 @@ import (
 )
 
 func init() {
-	http.HandleFunc("/", hostStaticFile)
-	http.HandleFunc("/_ah/login_required", loginHandler)
+	http.HandleFunc("/api/1/user", handleUserRequest)
+	http.HandleFunc("/api/1/access_token", handleAccessTokenRequest)
 }
 
+// ユーザーに関するリクエストを処理する
+func handleUserRequest(w http.ResponseWriter, r *http.Request) {
+}
+
+// ログイン用トークンに関するリクエストを処理する
+func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
+}
+
+/*
 func hostStaticFile() {
 	path := req.URL.Path[1:]
 	fmt.Printf("path: %s\n",path)
@@ -47,3 +56,4 @@ func loginHandler(w http.ResponseWriter, r * http.Request) {
 		fmt.Fprintf(w, "[<a href='%s'>%s</a>]", login_url, name)
 	}
 }
+*/
