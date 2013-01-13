@@ -1,0 +1,21 @@
+<div>
+	<form class="form-horizontal">
+		<div class="control-group">
+			<div class="controls">
+				<input type="text" id="inputEmail" placeholder="Email" ng-model="loginId">
+			</div>
+		</div>
+		<div class="control-group">
+			<div class="controls">
+				<input type="password" id="inputPassword" placeholder="Password" ng-model="password">
+			</div>
+		</div>
+		<div class="control-group">
+			<div class="controls">
+				<label class="checkbox">
+					<input type="checkbox" ng-model="rememberLogin">Remember me</label>
+				<button type="submit" class="btn" ng-click="authenticate()">Sign in</button>
+			</div>
+		</div>
+	</form>
+</div>
