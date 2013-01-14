@@ -1,27 +1,40 @@
 /**
  *  Components
  */
-angular.module('cadmis.component',[]).
+angular.module('cadmis.component',['ngResource']).
+    // ユーザー登録用のフォーム
 	directive('signupForm', function() {
 		return {
 			restrict: 'E',
 			transclude: false,
 			scope: {},
-			controller: function ($scope, $element) {
+			controller: function ($scope, $element, $resource) {
 
 				$scope.userId = '';
 				$scope.password = '';
 
 				$scope.signUp = function () {
+
+					var id = $scope.userId;
+					var pass = $scope.password;
 					console.log(
-						"Id: " + $scope.userId +
-						" Password: " + $scope.password);
+						"UserId: " + id +
+						" Password: " + pass);
+
+					var User = $resource('/api/1/user/:UserId', {UserId: '@id'});
+
+					var newUser = new User();
+					newUser.UserId = id;
+					newUser.Password = pass;
+					newUser.$save();
+
 				};
 			},
 			templateUrl: 'component/signupForm.html',
 			replace: true
 		};
 	}).
+    // ログイン用のフォーム
 	directive('loginForm', function() {
 		return {
 			restrict: 'E',
@@ -45,6 +58,7 @@ angular.module('cadmis.component',[]).
 			replace: true
 		};
 	}).
+	// ログインしてない状態で表示される画面
 	directive('greeting', function() {
 		return {
 			restrict: 'E',
@@ -56,6 +70,7 @@ angular.module('cadmis.component',[]).
 			replace: true
 		};
 	}).
+	// ログインされた状態で表示される画面
 	directive('userHome', function() {
 		return {
 			restrict: 'E',

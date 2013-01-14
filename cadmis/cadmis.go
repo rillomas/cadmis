@@ -1,10 +1,13 @@
 package cadmis
 
 import (
-	"appengine"
-	"appengine/user"
+//	"appengine"
+//	"appengine/user"
 	"fmt"
 	"net/http"
+//	"bytes"
+	"encoding/json"
+	"io/ioutil"
 )
 
 func init() {
@@ -12,8 +15,34 @@ func init() {
 	http.HandleFunc("/api/1/access_token", handleAccessTokenRequest)
 }
 
+type AddUserRequest struct {
+	UserId string
+	Password string
+}
+
 // ユーザーに関するリクエストを処理する
 func handleUserRequest(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Method: %s Url:%s ContentLength: %d\n", r.Method, r.URL, r.ContentLength)
+	// fmt.Printf("Content: %s\n", s)
+	//buf := new(bytes.Buffer)
+	//buf.ReadFrom(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+	req := AddUserRequest{}
+	json.Unmarshal(buf, &req)
+
+	fmt.Printf("UserId: %s Password: %s\n", req.UserId, req.Password)
+
+	// for k,v := range r.Form {
+	// 	fmt.Printf("k:%s v:%s\n", k, v)
+	// }
+	// id := r.FormValue("userId")
+	// pass := r.FormValue("password")
+	// fmt.Printf("id: %s pass:%s\n", id, pass)
+
 }
 
 // ログイン用トークンに関するリクエストを処理する

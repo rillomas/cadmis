@@ -9,5 +9,11 @@ handlers:
   static_files : static/index.html
   upload: static
 
+# apiへのリクエストはスクリプトで受ける
+- url: /api/.*
+  script: _go_app
+
+# 各種ファイルへのリクエストハンドラ
 - url: /
   static_dir : static
+
