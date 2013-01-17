@@ -1,7 +1,12 @@
+var constants = {
+	"AuthenticationChangedEvent" : "AuthenticationChangedEvent"
+};
+
 /**
  * Services
  */
 angular.module('cadmis.service', ['ngResource']).
+	// ユーザー関連のリソースを管理するサービス
 	factory('user', function($resource) {
 		var service = {};
 
@@ -15,7 +20,8 @@ angular.module('cadmis.service', ['ngResource']).
 		}
 		return service;
 	}).
-	factory('authenticate', function($resource) {
+	// 認証トークンを管理するサービス
+	factory('authenticate', function($resource, $rootScope) {
 		var service = {};
 
 		// ログイン済みかを示すトークン
@@ -32,6 +38,10 @@ angular.module('cadmis.service', ['ngResource']).
 				console.log("Got access token");
 				this.accessToken = response.data;
 				onSuccess(response);
+				
+				// 認証完了したのでイベントを飛ばす
+				var args = { "authenticated" : true };
+				$rootScope.$emit(constants.AuthenticationChangedEvent, args);
 			}
 			newToken.$save({}, success, onError);
 		}
@@ -153,6 +163,11 @@ angular.module('cadmis',['cadmis.component']).
 /**
  * Main controller
  */
-function CadmisController($scope) {
+function CadmisController($scope, $rootScope) {
     $scope.authenticated = false;
+
+    $rootScope.$on(constants.AuthenticationChangedEvent, function(event, args) {
+    	console.log("Got AuthenticationChangedEvent: " + args.authenticated);
+    	$scope.authenticated = args.authenticated;
+    });
 }

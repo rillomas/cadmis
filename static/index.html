@@ -17,10 +17,14 @@
 		</div>
 	</div>
 	<div ng-controller="CadmisController">
-		<div ng-switch on="authenticated">
-			<greeting ng-switch-when="false"></greeting>
-			<user-home ng-switch-when="true"></user-home>
-		</div>
+		<ng-switch on="authenticated">
+			<div ng-switch-when="false">
+				<greeting></greeting>
+			</div>
+			<div ng-switch-default>
+				<user-home></user-home>
+			</div>
+		</ng-switch>
 	</div>
 </body>
 </html>
