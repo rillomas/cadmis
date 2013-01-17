@@ -4,28 +4,28 @@ import (
 	"appengine"
 	// "appengine/user"
 	"appengine/datastore"
-	"time"
-	"net/http"
+	"code.google.com/p/go.crypto/bcrypt"
 	"encoding/json"
 	"io/ioutil"
-	"code.google.com/p/go.crypto/bcrypt"
+	"net/http"
+	"time"
 )
 
 // ユーザーが所属するグループ
 type UserGroup int
 
 const (
-	FirstYearHighSchool UserGroup = iota// 高1
-	SecondYearHighSchool // 高2
-	ThirdYearHighSchool // 高3
-	College // 大学生
-	CramSchool // 予備校 
-	Certified // 高認
-	Adult // 社会人
+	FirstYearHighSchool  UserGroup = iota // 高1
+	SecondYearHighSchool                  // 高2
+	ThirdYearHighSchool                   // 高3
+	College                               // 大学生
+	CramSchool                            // 予備校 
+	Certified                             // 高認
+	Adult                                 // 社会人
 )
 
 const (
-	UserEntity string = "User"
+	UserEntity            string = "User"
 	UserInformationEntity string = "UserInformation"
 )
 
@@ -37,43 +37,43 @@ func init() {
 
 // ユーザー追加リクエスト
 type AddUserRequest struct {
-	UserId string
+	UserId   string
 	Password string
 }
 
 // ユーザーのモデル
 type User struct {
-	Id string
+	Id           string
 	PasswordHash []byte
-	Information *datastore.Key // ユーザー情報への鍵
+	Information  *datastore.Key // ユーザー情報への鍵
 }
 
 // ユーザーの名前 
 type UserName struct {
 	First string // 名前
-	Last string // 苗字
+	Last  string // 苗字
 }
 
 // ユーザーの情報
 type UserInformation struct {
 	Id string // ユーザーのID
 	UserName
-	Group UserGroup // 所属するグループ
-	SchoolName string // 所属する学校名（もしあれば）
-	JoinDate time.Time // 加入日
+	Group      UserGroup // 所属するグループ
+	SchoolName string    // 所属する学校名（もしあれば）
+	JoinDate   time.Time // 加入日
 }
 
 //  ユーザーを追加する
 func addUser(c appengine.Context, userId, password string) error {
-	
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	user := User {
-		Id : userId,
-		PasswordHash : hash,
+	user := User{
+		Id:           userId,
+		PasswordHash: hash,
 	}
 
 	key := datastore.NewKey(c, UserEntity, userId, 0, nil) // userIDをキーにする
@@ -91,9 +91,9 @@ func getUser(c appengine.Context, userId string) (*User, error) {
 	user := new(User)
 	err := datastore.Get(c, key, user)
 	if err != nil {
-		return user,err
+		return user, err
 	}
-	return user,nil
+	return user, nil
 }
 
 // ユーザーに関するリクエストを処理する
@@ -105,7 +105,7 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 	c.Infof("Method: %s Url:%s ContentLength: %d\n", r.Method, r.URL, r.ContentLength)
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		c.Errorf("%s",err.Error())
+		c.Errorf("%s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -120,12 +120,12 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch(err) {
+	switch err {
 	case datastore.ErrNoSuchEntity:
 		// ユーザーが重複しないので追加
 		err = addUser(c, req.UserId, req.Password)
 		if err != nil {
-			c.Errorf("%s",err.Error())
+			c.Errorf("%s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
