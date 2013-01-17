@@ -2,7 +2,7 @@
 	<form class="form-horizontal">
 		<div class="control-group">
 			<div class="controls">
-				<input type="text" id="inputEmail" placeholder="Email" ng-model="loginId">
+				<input type="text" id="inputEmail" placeholder="Email" ng-model="email">
 			</div>
 		</div>
 		<div class="control-group">
@@ -14,7 +14,7 @@
 			<div class="controls">
 				<label class="checkbox">
 					<input type="checkbox" ng-model="rememberLogin">Remember me</label>
-				<button type="submit" class="btn" ng-click="authenticate()">Sign in</button>
+				<button type="submit" class="btn" ng-click="login(email, password, rememberLogin)">Sign in</button>
 			</div>
 		</div>
 	</form>

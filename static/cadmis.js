@@ -1,39 +1,88 @@
 /**
+ * Services
+ */
+angular.module('cadmis.service', ['ngResource']).
+	factory('user', function($resource) {
+		var service = {};
+
+		// 新規ユーザー追加機能
+		service.signUp = function(email, password, onSuccess, onError) {
+			var User = $resource('/api/1/user/');
+			var newUser = new User();
+			newUser.Email = email;
+			newUser.Password = password;
+			newUser.$save({}, onSuccess, onError);
+		}
+		return service;
+	}).
+	factory('authenticate', function($resource) {
+		var service = {};
+
+		// ログイン済みかを示すトークン
+		service.accessToken = null;
+
+		// トークンをリクエストする
+		service.requestToken = function(email, password, onSuccess, onError) {
+			var AccessToken = $resource('/api/1/access_token');
+			var newToken = new AccessToken();
+			newToken.Email = email;
+			newToken.Password = password;
+
+			var success = function(response) {
+				console.log("Got access token");
+				this.accessToken = response.data;
+				onSuccess(response);
+			}
+			newToken.$save({}, success, onError);
+		}
+
+		// ログイン済みかどうか
+		service.authenticated = function() {
+			return this.aceessToken != null;
+		}
+		return service;
+	});
+
+/**
  *  Components
  */
-angular.module('cadmis.component',['ngResource']).
+angular.module('cadmis.component',['cadmis.service']).
     // ユーザー登録用のフォーム
 	directive('signupForm', function() {
 		return {
 			restrict: 'E',
 			transclude: false,
 			scope: {},
-			controller: function ($scope, $element, $resource) {
+			controller: function ($scope, $element, user, authenticate) {
 
 				$scope.email = '';
 				$scope.password = '';
 				$scope.errorMessage = '';
 
 				$scope.signUp = function () {
-
 					var email = $scope.email;
 					var pass = $scope.password;
 					console.log(
 						"Email: " + email +
 						" Password: " + pass);
 
-					var User = $resource('/api/1/user/');
-
-					var newUser = new User();
-					newUser.Email = email;
-					newUser.Password = pass;
-					newUser.$save({}, function() {
+					user.signUp(email, pass, function() {
 						console.log("sign up success");
-					}, function(data, headers) {
-						console.log("sign up error");
-						$scope.errorMessage = "Specified Email address is already used.";
-					});
+						$scope.errorMessage = '';
 
+						// ログインする
+						// authenticate.requestToken(email, pass, function() {
+						// 	console.log("login success");
+						// }, function(response) {
+						// 	console.log("login error");
+						// 	console.log(response.data);
+						// 	$scope.errorMessage = response.data;
+						// });
+					}, function(response) {
+						console.log("sign up error");
+						console.log(response.data);
+						$scope.errorMessage = response.data;
+					});
 				};
 			},
 			templateUrl: 'component/signupForm.html',
@@ -46,18 +95,22 @@ angular.module('cadmis.component',['ngResource']).
 			restrict: 'E',
 			transclude: false,
 			scope: {},
-			controller: function ($scope, $element) {
+			controller: function ($scope, $element, authenticate) {
 
-				$scope.loginId = '';
+				$scope.email = '';
 				$scope.password = '';
 				$scope.rememberLogin = false;
 
 				// send id/pass to server and authenticate
-				$scope.authenticate = function () {
+				$scope.login = function (email, password, rememberLogin) {
 					console.log(
-						"Id: " + $scope.loginId +
-						" Password: " + $scope.password +
-						" Remember: " + $scope.rememberLogin);
+						"email: " + email +
+						" Password: " + password +
+						" Remember: " + rememberLogin);
+
+					authenticate.requestToken(email, password, function(response) {
+					}, function(response) {
+					})
 				};
 			},
 			templateUrl: 'component/loginForm.html',
