@@ -37,26 +37,27 @@ func init() {
 
 // ユーザー追加リクエスト
 type AddUserRequest struct {
-	UserId   string
+	Email    string
 	Password string
 }
 
 // ユーザーのモデル
 type User struct {
-	Id           string
+	Id           int64 // 自動生成される一意なID
+	Email        string
 	PasswordHash []byte
 	Information  *datastore.Key // ユーザー情報への鍵
 }
 
 // ユーザーの名前 
 type UserName struct {
-	First string // 名前
-	Last  string // 苗字
+	FirstName string // 名前
+	LastName  string // 苗字
 }
 
 // ユーザーの情報
 type UserInformation struct {
-	Id string // ユーザーのID
+	Id int64 // 対応するユーザーのID
 	UserName
 	Group      UserGroup // 所属するグループ
 	SchoolName string    // 所属する学校名（もしあれば）
@@ -64,7 +65,7 @@ type UserInformation struct {
 }
 
 //  ユーザーを追加する
-func addUser(c appengine.Context, userId, password string) error {
+func addUser(c appengine.Context, email, password string) error {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -72,12 +73,18 @@ func addUser(c appengine.Context, userId, password string) error {
 	}
 
 	user := User{
-		Id:           userId,
+		Email:        email,
 		PasswordHash: hash,
 	}
 
-	key := datastore.NewKey(c, UserEntity, userId, 0, nil) // userIDをキーにする
-	_, err = datastore.Put(c, key, &user)
+	ik := datastore.NewIncompleteKey(c, UserEntity, nil)
+	key, err := datastore.Put(c, ik, &user)
+	if err != nil {
+		return err
+	}
+
+	user.Id = key.IntID()                 // 生成されたIDを格納する
+	_, err = datastore.Put(c, key, &user) // 再度格納
 	if err != nil {
 		return err
 	}
@@ -85,15 +92,11 @@ func addUser(c appengine.Context, userId, password string) error {
 	return nil
 }
 
-// 指定されたIDをもつユーザーを持ってくる
-func getUser(c appengine.Context, userId string) (*User, error) {
-	key := datastore.NewKey(c, UserEntity, userId, 0, nil)
-	user := new(User)
-	err := datastore.Get(c, key, user)
-	if err != nil {
-		return user, err
-	}
-	return user, nil
+// 指定されたメールアドレスをもつユーザーがいるかどうかを調べる
+func userExists(c appengine.Context, email string) (bool, error) {
+	q := datastore.NewQuery(UserEntity).Limit(1).Filter("Email =", email)
+	count, err := q.Count(c)
+	return count > 0, err
 }
 
 // ユーザーに関するリクエストを処理する
@@ -113,17 +116,20 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(buf, &req)
 
 	// 既におなじユーザーがいるかどうかを調べて、いなかったら追加する
-	_, err = getUser(c, req.UserId)
-	if err == nil {
-		// 同じIDのユーザーが既に存在するので失敗
-		http.Error(w, "User ID already taken", http.StatusNotAcceptable)
+	exists, err := userExists(c, req.Email)
+	if err != nil {
+		c.Errorf("Error at userExists: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	switch err {
-	case datastore.ErrNoSuchEntity:
+	if exists {
+		// 同じIDのユーザーが既に存在するので失敗
+		http.Error(w, "User ID already taken", http.StatusNotAcceptable)
+		return
+	} else {
 		// ユーザーが重複しないので追加
-		err = addUser(c, req.UserId, req.Password)
+		err = addUser(c, req.Email, req.Password)
 		if err != nil {
 			c.Errorf("%s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -131,10 +137,7 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// ユーザーの追加に成功
-		c.Infof("added User: %s\n", req.UserId)
-	default:
-		c.Errorf("Error at getUser: %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.Infof("added User: %s\n", req.Email)
 	}
 }
 

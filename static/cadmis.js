@@ -10,23 +10,29 @@ angular.module('cadmis.component',['ngResource']).
 			scope: {},
 			controller: function ($scope, $element, $resource) {
 
-				$scope.userId = '';
+				$scope.email = '';
 				$scope.password = '';
+				$scope.errorMessage = '';
 
 				$scope.signUp = function () {
 
-					var id = $scope.userId;
+					var email = $scope.email;
 					var pass = $scope.password;
 					console.log(
-						"UserId: " + id +
+						"Email: " + email +
 						" Password: " + pass);
 
-					var User = $resource('/api/1/user/:UserId', {UserId: '@id'});
+					var User = $resource('/api/1/user/');
 
 					var newUser = new User();
-					newUser.UserId = id;
+					newUser.Email = email;
 					newUser.Password = pass;
-					newUser.$save();
+					newUser.$save({}, function() {
+						console.log("sign up success");
+					}, function(data, headers) {
+						console.log("sign up error");
+						$scope.errorMessage = "Specified Email address is already used.";
+					});
 
 				};
 			},

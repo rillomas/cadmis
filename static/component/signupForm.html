@@ -2,13 +2,16 @@
 	<form class="form-horizontal">
 		<div class="control-group">
 			<div class="controls">
-				<input type="text" id="inputEmail" placeholder="Email" ng-model="userId">
+				<input type="text" id="inputEmail" placeholder="Email" ng-model="email">
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
 				<input type="password" id="inputPassword" placeholder="Password" ng-model="password">
 			</div>
+		</div>
+		<div class="control-group">
+			<div class="alert alert-error" ng-class="{hide: errorMessage == ''}"><strong>Error</strong>: {{errorMessage}}</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
