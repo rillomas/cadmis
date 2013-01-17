@@ -79,8 +79,10 @@ angular.module('cadmis.component',['cadmis.service']).
 				$scope.email = '';
 				$scope.password = '';
 				$scope.errorMessage = '';
+				$scope.busy = false;
 
 				$scope.signUp = function () {
+					$scope.busy = true;
 					var email = $scope.email;
 					var pass = $scope.password;
 					console.log(
@@ -88,21 +90,19 @@ angular.module('cadmis.component',['cadmis.service']).
 						" Password: " + pass);
 
 					user.signUp(email, pass, function() {
-						console.log("sign up success");
 						$scope.errorMessage = '';
 
 						// ログインする
-						// authenticate.requestToken(email, pass, function() {
-						// 	console.log("login success");
-						// }, function(response) {
-						// 	console.log("login error");
-						// 	console.log(response.data);
-						// 	$scope.errorMessage = response.data;
-						// });
+						authenticate.requestToken(email, pass, function(response) {
+							$scope.errorMessage = '';
+							$scope.busy = false;
+						}, function(response) {
+							$scope.errorMessage = response.data;
+							$scope.busy = false;
+						});
 					}, function(response) {
-						console.log("sign up error");
-						console.log(response.data);
 						$scope.errorMessage = response.data;
+						$scope.busy = false;
 					});
 				};
 			},
@@ -121,17 +121,24 @@ angular.module('cadmis.component',['cadmis.service']).
 				$scope.email = '';
 				$scope.password = '';
 				$scope.rememberLogin = false;
+				$scope.errorMessage = '';
+				$scope.busy = false;
 
 				// send id/pass to server and authenticate
 				$scope.login = function (email, password, rememberLogin) {
+					$scope.busy = true;
 					console.log(
 						"email: " + email +
 						" Password: " + password +
 						" Remember: " + rememberLogin);
 
 					authenticate.requestToken(email, password, function(response) {
+						$scope.errorMessage = '';
+						$scope.busy = false;
 					}, function(response) {
-					})
+						$scope.errorMessage = response.data;
+						$scope.busy = false;
+					});
 				};
 			},
 			templateUrl: 'component/loginForm.html',

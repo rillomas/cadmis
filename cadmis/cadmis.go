@@ -36,8 +36,8 @@ func init() {
 	http.HandleFunc("/api/1/access_token", handleAccessTokenRequest)
 }
 
-// ユーザー追加リクエスト
-type AddUserRequest struct {
+// 認証情報
+type AuthenticationInformation struct {
 	Email    string
 	Password string
 }
@@ -113,11 +113,16 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	req := AddUserRequest{}
-	json.Unmarshal(buf, &req)
+	info := AuthenticationInformation{}
+	err = json.Unmarshal(buf, &info)
+	if err != nil {
+		// 受け付けられないリクエスト
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 
 	// 既におなじユーザーがいるかどうかを調べて、いなかったら追加する
-	exists, err := userExists(c, req.Email)
+	exists, err := userExists(c, info.Email)
 	if err != nil {
 		c.Errorf("Error at userExists: %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -126,11 +131,11 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 
 	if exists {
 		// 同じIDのユーザーが既に存在するので失敗
-		http.Error(w, "User ID already taken", http.StatusNotAcceptable)
+		http.Error(w, "Email address already in use", http.StatusNotAcceptable)
 		return
 	} else {
 		// ユーザーが重複しないので追加
-		err = addUser(c, req.Email, req.Password)
+		err = addUser(c, info.Email, info.Password)
 		if err != nil {
 			c.Errorf("%s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -138,13 +143,71 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// ユーザーの追加に成功
-		c.Infof("added User: %s\n", req.Email)
+		c.Infof("added User: %s\n", info.Email)
 	}
 }
 
 // ログイン用トークンに関するリクエストを処理する
 func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
-	//c := appengine.NewContext(r)
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("accesstoken"))
+	c := appengine.NewContext(r)
+
+	// リクエストをパースする
+	c.Infof("Method: %s Url:%s ContentLength: %d\n", r.Method, r.URL, r.ContentLength)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	info := AuthenticationInformation{}
+	err = json.Unmarshal(buf, &info)
+	if err != nil {
+		// 受け付けられないリクエスト
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// 同じメールアドレスのユーザーを探す
+	q := datastore.NewQuery(UserEntity).Limit(1).Filter("Email =", info.Email)
+	count, err := q.Count(c)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if count <= 0 {
+		// 指定されたメールアドレスを持つユーザーがいない
+		http.Error(w, "Wrong Email address or password", http.StatusUnauthorized)
+		return
+	}
+
+	// 見つけたユーザーを認証可能かチェックする
+	t := q.Run(c)
+	for {
+		var u User
+		_, err := t.Next(&u)
+		if err != nil {
+			if err == datastore.Done {
+				// 最後まで到達したので抜ける
+				break
+			} else {
+				c.Errorf("%s", err.Error())
+				http.Error(w, "Error while authenticating", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// ハッシュの一致比較
+		err = bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(info.Password))
+		if err == nil {
+			// 認証成功
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte("accesstoken"))
+			return
+		}
+	}
+
+	// 認証失敗
+	http.Error(w, "Wrong email address or password", http.StatusUnauthorized)
 }

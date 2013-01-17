@@ -1,21 +1,23 @@
 <div>
-	<form class="form-horizontal">
+	<form class="form-horizontal" name="signupForm">
 		<div class="control-group">
 			<div class="controls">
-				<input type="text" id="inputEmail" placeholder="Email" ng-model="email">
+				<input type="text" id="inputEmail" placeholder="Email" ng-model="email" required>
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
-				<input type="password" id="inputPassword" placeholder="Password" ng-model="password">
+				<input type="password" id="inputPassword" placeholder="Password" ng-model="password" required>
 			</div>
 		</div>
 		<div class="control-group">
-			<div class="alert alert-error" ng-class="{hide: errorMessage == ''}"><strong>Error</strong>: {{errorMessage}}</div>
+			<div class="controls">
+				<div class="alert alert-error" ng-class="{hide: errorMessage == ''}"><strong>Error</strong>: {{errorMessage}}</div>
+			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
-				<button type="submit" class="btn" ng-click="signUp()">Sign Up</button>
+				<button type="submit" class="btn" ng-disabled="signupForm.$invalid || busy" ng-click="signUp()">Sign Up</button>
 			</div>
 		</div>
 
