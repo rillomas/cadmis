@@ -27,6 +27,16 @@ angular.module('cadmis.service', ['ngResource']).
 		// ログイン済みかを示すトークン
 		service.accessToken = null;
 
+		// ログイン済みかどうか
+		service.authenticated = function() {
+			return this.accessToken != null;
+		}
+
+		service.notifyAuthenticationChanged = function() {
+			var args = { "authenticated" : this.authenticated() };
+			$rootScope.$emit(constants.AuthenticationChangedEvent, args);
+		}
+
 		// トークンをリクエストする
 		service.requestToken = function(email, password, onSuccess, onError) {
 			var AccessToken = $resource('/api/1/access_token');
@@ -35,21 +45,22 @@ angular.module('cadmis.service', ['ngResource']).
 			newToken.Password = password;
 
 			var success = function(response) {
-				console.log("Got access token");
-				this.accessToken = response.data;
+				console.log("Got access token: " + response);
+				service.accessToken = response[0];
 				onSuccess(response);
-				
+
 				// 認証完了したのでイベントを飛ばす
-				var args = { "authenticated" : true };
-				$rootScope.$emit(constants.AuthenticationChangedEvent, args);
+				service.notifyAuthenticationChanged();
 			}
 			newToken.$save({}, success, onError);
 		}
 
-		// ログイン済みかどうか
-		service.authenticated = function() {
-			return this.aceessToken != null;
+		// トークンを破棄する
+		service.disposeToken = function() {
+			this.accessToken = null;
+			this.notifyAuthenticationChanged();
 		}
+
 		return service;
 	});
 
@@ -163,8 +174,12 @@ angular.module('cadmis',['cadmis.component']).
 /**
  * Main controller
  */
-function CadmisController($scope, $rootScope) {
+function CadmisController($scope, $rootScope, authenticate) {
     $scope.authenticated = false;
+
+    $scope.logout = function () {
+    	authenticate.disposeToken();
+    }
 
     $rootScope.$on(constants.AuthenticationChangedEvent, function(event, args) {
     	console.log("Got AuthenticationChangedEvent: " + args.authenticated);

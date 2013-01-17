@@ -2,6 +2,7 @@ package cadmis
 
 import (
 	"appengine"
+	//"fmt"
 	// "appengine/user"
 	"appengine/datastore"
 	"code.google.com/p/go.crypto/bcrypt"
@@ -143,4 +144,7 @@ func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 
 // ログイン用トークンに関するリクエストを処理する
 func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
+	//c := appengine.NewContext(r)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("accesstoken"))
 }

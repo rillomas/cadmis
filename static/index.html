@@ -10,13 +10,16 @@
 	<link rel="stylesheet" href="style/cadmis.css">
 	<title>cadmis</title>
 </head>
-<body>
+<body ng-controller="CadmisController">
 	<div class="navbar">
 		<div class="navbar-inner">
 			<a class="brand">cadmis</a>
+			<ul class="nav pull-right" >
+				<li ng-class="{hide: !authenticated}"><a href="#" ng-click="logout()">Logout</a></li>
+			</ul>
 		</div>
 	</div>
-	<div ng-controller="CadmisController">
+	<div>
 		<ng-switch on="authenticated">
 			<div ng-switch-when="false">
 				<greeting></greeting>
