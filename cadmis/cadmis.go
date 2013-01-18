@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -28,6 +29,7 @@ const (
 const (
 	UserEntity            string = "User"
 	UserInformationEntity string = "UserInformation"
+	AccessTokenEntity     string = "AccessToken"
 )
 
 // ハンドラを設定する
@@ -65,6 +67,12 @@ type UserInformation struct {
 	JoinDate   time.Time // 加入日
 }
 
+// アクセストークンのモデル
+type AccessToken struct {
+	Id     int64 // アクセストークン自体のID
+	UserId int64 // アクセストークンを発行されたユーザーのID
+}
+
 //  ユーザーを追加する
 func addUser(c appengine.Context, email, password string) error {
 
@@ -98,6 +106,13 @@ func userExists(c appengine.Context, email string) (bool, error) {
 	q := datastore.NewQuery(UserEntity).Limit(1).Filter("Email =", email)
 	count, err := q.Count(c)
 	return count > 0, err
+}
+
+// アクセストークンが発行済みかどうかを調べる
+func accessTokenPublished(c appengine.Context, userId int64) (bool, *datastore.Query, error) {
+	q := datastore.NewQuery(AccessTokenEntity).Limit(1).Filter("UserId =", userId)
+	count, err := q.Count(c)
+	return count > 0, q, err
 }
 
 // ユーザーに関するリクエストを処理する
@@ -202,12 +217,65 @@ func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
 		err = bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(info.Password))
 		if err == nil {
 			// 認証成功
+
+			// 既にトークンを発行してるかどうかを調べる
+			published, query, err := accessTokenPublished(c, u.Id)
+			if err != nil {
+				c.Errorf("%s", err.Error())
+				http.Error(w, "Error while authenticating", http.StatusInternalServerError)
+				return
+			}
+
+			at := new(AccessToken)
+			if published {
+				c.Infof("Found published access token")
+				// アクセストークンがもうあるのでそれをまた返す
+				_, err = query.Run(c).Next(at)
+				if err != nil {
+					c.Errorf("%s", err.Error())
+					http.Error(w, "Error while authenticating", http.StatusInternalServerError)
+					return
+				}
+			} else {
+				c.Infof("Creating new access token")
+				// アクセストークンが存在しないので発行する
+				at, err = publishAccessToken(c, u.Id)
+				if err != nil {
+					c.Errorf("%s", err.Error())
+					http.Error(w, "Error while authenticating", http.StatusInternalServerError)
+					return
+				}
+			}
+
+			idStr := strconv.FormatInt(at.Id, 10)
+			c.Infof("Sending access token %s to user %d", idStr, at.UserId)
 			w.Header().Set("Content-Type", "text/plain")
-			w.Write([]byte("accesstoken"))
+			w.Write([]byte(idStr))
 			return
 		}
 	}
 
 	// 認証失敗
 	http.Error(w, "Wrong email address or password", http.StatusUnauthorized)
+}
+
+//新しいアクセストークンを発行する 
+func publishAccessToken(c appengine.Context, userId int64) (*AccessToken, error) {
+	at := AccessToken{
+		UserId: userId,
+	}
+
+	ik := datastore.NewIncompleteKey(c, AccessTokenEntity, nil)
+	key, err := datastore.Put(c, ik, &at)
+	if err != nil {
+		return nil, err
+	}
+
+	at.Id = key.IntID()                 // 生成されたIDを格納する
+	_, err = datastore.Put(c, key, &at) // 再度格納
+	if err != nil {
+		return nil, err
+	}
+
+	return &at, nil
 }
