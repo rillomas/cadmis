@@ -183,8 +183,43 @@ angular.module('cadmis.component',['cadmis.service']).
 			templateUrl: 'component/userHome.html',
 			replace: true
 		}
+	}).
+	// ランキング画面
+	directive('ranking', function() {
+		return {
+			restrict: 'E',
+			transclude: false,
+			scope: {},
+			controller: function ($scope, $element) {
+			},
+			templateUrl: 'component/ranking.html',
+			replace: true
+		}
+	}).
+	// 試験画面
+	directive('exam', function() {
+		return {
+			restrict: 'E',
+			transclude: false,
+			scope: {},
+			controller: function ($scope, $element) {
+			},
+			templateUrl: 'component/exam.html',
+			replace: true
+		}
+	}).
+	// プロフィール画面
+	directive('profile', function() {
+		return {
+			restrict: 'E',
+			transclude: false,
+			scope: {},
+			controller: function ($scope, $element) {
+			},
+			templateUrl: 'component/profile.html',
+			replace: true
+		}
 	});
-
 /**
  * Main module
  */
@@ -197,11 +232,17 @@ angular.module('cadmis',['cadmis.component']).
  */
 function CadmisController($scope, $rootScope, authenticate) {
     $scope.authenticated = authenticate.authenticated();
+    $scope.selected = null;
 
     $scope.logout = function () {
     	authenticate.disposeToken();
     }
 
+    $scope.select = function(target) {
+    	$scope.selected = target;
+    }
+
+    // 認証状態が変わったら同期する
     $rootScope.$on(constants.AuthenticationChangedEvent, function(event, args) {
     	console.log("Got AuthenticationChangedEvent: " + args.authenticated);
     	$scope.authenticated = args.authenticated;
