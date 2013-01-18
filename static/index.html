@@ -14,7 +14,14 @@
 	<div class="navbar">
 		<div class="navbar-inner">
 			<a class="brand">cadmis</a>
+			<ul class="nav">
+				<li ng-class="{hide: !authenticated}"><a href="#"><i class="icon-list"></i> Ranking</a></li>
+				<li ng-class="{hide: !authenticated}"><a href="#"><i class="icon-pencil"></i> Test</a></li>
+			</ul>
 			<ul class="nav pull-right" >
+				<li ng-class="{hide: !authenticated}">
+					<a href="#"><i class="icon-user"></i> Profile</a>
+				</li>
 				<li ng-class="{hide: !authenticated}"><a href="#" ng-click="logout()">Logout</a></li>
 			</ul>
 		</div>
