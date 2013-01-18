@@ -13,18 +13,18 @@
 <body ng-controller="CadmisController">
 	<div class="navbar">
 		<div class="navbar-inner">
-			<a class="brand" ng-click="select('user-home')">cadmis</a>
+			<a href="/" class="brand" >cadmis</a>
 			<ul class="nav">
-				<li ng-class="{hide: !authenticated, active: selected == 'ranking'}">
-					<a href="#" ng-click="select('ranking')"><i class="icon-list"></i> Ranking</a>
+				<li ng-class="{hide: !authenticated, active: location.path() == '/ranking'}">
+					<a href="/ranking" ><i class="icon-list"></i> Ranking</a>
 				</li>
-				<li ng-class="{hide: !authenticated, active: selected == 'exam'}">
-					<a href="#" ng-click="select('exam')"><i class="icon-pencil"></i> Exam</a>
+				<li ng-class="{hide: !authenticated, active: location.path() == '/exam'}">
+					<a href="/exam" ><i class="icon-pencil"></i> Exam</a>
 				</li>
 			</ul>
 			<ul class="nav pull-right" >
-				<li ng-class="{hide: !authenticated, active: selected == 'profile'}">
-					<a href="#" ng-click="select('profile')"><i class="icon-user"></i> Profile</a>
+				<li ng-class="{hide: !authenticated, active: location.path() == '/profile'}">
+					<a href="/profile" ><i class="icon-user"></i> Profile</a>
 				</li>
 				<li ng-class="{hide: !authenticated}">
 					<a href="#" ng-click="logout()">Logout</a>
@@ -38,24 +38,8 @@
 				<greeting></greeting>
 			</div>
 			<div ng-switch-default>
-				<ng-switch on="selected">
-					<div ng-switch-when="ranking">
-						<ranking></ranking>
-					</div>
-
-					<div ng-switch-when="exam">
-						<exam></exam>
-					</div>
-
-					<div ng-switch-when="profile">
-						<profile></profile>
-					</div>
-
-					<div ng-switch-default>
-						<user-home></user-home>
-					</div>
-				</ng-switch>
-			</div>
+				<div ng-view></div>
+ 			</div>
 		</ng-switch>
 	</div>
 </body>

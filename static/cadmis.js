@@ -170,76 +170,41 @@ angular.module('cadmis.component',['cadmis.service']).
 			templateUrl: 'component/greeting.html',
 			replace: true
 		};
-	}).
-	// ログインされた状態で表示される画面
-	directive('userHome', function() {
-		return {
-			restrict: 'E',
-			transclude: false,
-			scope: {},
-			controller: function ($scope, $element) {
-
-			},
-			templateUrl: 'component/userHome.html',
-			replace: true
-		}
-	}).
-	// ランキング画面
-	directive('ranking', function() {
-		return {
-			restrict: 'E',
-			transclude: false,
-			scope: {},
-			controller: function ($scope, $element) {
-			},
-			templateUrl: 'component/ranking.html',
-			replace: true
-		}
-	}).
-	// 試験画面
-	directive('exam', function() {
-		return {
-			restrict: 'E',
-			transclude: false,
-			scope: {},
-			controller: function ($scope, $element) {
-			},
-			templateUrl: 'component/exam.html',
-			replace: true
-		}
-	}).
-	// プロフィール画面
-	directive('profile', function() {
-		return {
-			restrict: 'E',
-			transclude: false,
-			scope: {},
-			controller: function ($scope, $element) {
-			},
-			templateUrl: 'component/profile.html',
-			replace: true
-		}
 	});
+
 /**
- * Main module
+ * ユーザーホーム画面のコントローラー
+ */ 
+function UserHomeController($scope, $routeParams) {
+}
+
+/**
+ * プロフィール画面のコントローラー
  */
-angular.module('cadmis',['cadmis.component']).
-    run(function () {
-    });
+function ProfileController($scope, $routeParams) {
+}
+
+/**
+ * ランキング画面のコントローラー
+ */
+function RankingController($scope, $routeParams) {
+}
+
+/**
+ * 試験画面のコントローラー
+ */
+function ExamController($scope, $routeParams) {
+}
 
 /**
  * Main controller
  */
-function CadmisController($scope, $rootScope, authenticate) {
+function CadmisController($scope, $rootScope, $location, authenticate) {
     $scope.authenticated = authenticate.authenticated();
-    $scope.selected = null;
+    $scope.location = $location; // htmlからURLを参照できるようにlocationサービスを保持する
 
     $scope.logout = function () {
     	authenticate.disposeToken();
-    }
-
-    $scope.select = function(target) {
-    	$scope.selected = target;
     }
 
     // 認証状態が変わったら同期する
@@ -248,3 +213,32 @@ function CadmisController($scope, $rootScope, authenticate) {
     	$scope.authenticated = args.authenticated;
     });
 }
+
+/**
+ * Main module
+ */
+angular.module('cadmis',['cadmis.component']).
+	config(function($routeProvider, $locationProvider) {
+		// アプリ全体の設定
+		
+		// html5モードを使う
+		$locationProvider.html5Mode(true);
+
+		// URLごとにViewとコントローラーを割り当てる
+		$routeProvider.when('/ranking', {
+			templateUrl : 'component/ranking.html',
+			controller : RankingController,
+		});
+		$routeProvider.when('/exam', {
+			templateUrl : 'component/exam.html',
+			controller : ExamController,
+		});	
+		$routeProvider.when('/profile', {
+			templateUrl : 'component/profile.html',
+			controller : ProfileController,
+		});
+		$routeProvider.otherwise( {
+			templateUrl : 'component/userHome.html',
+			controller : UserHomeController,
+		})
+	});
