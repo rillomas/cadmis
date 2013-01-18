@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+	// "strconv"
 	"time"
 )
 
@@ -71,6 +71,11 @@ type UserInformation struct {
 type AccessToken struct {
 	Id     int64 // アクセストークン自体のID
 	UserId int64 // アクセストークンを発行されたユーザーのID
+}
+
+// アクセストークンをクライアントへ送るときのメッセージ
+type AccessTokenMessage struct {
+	Id int64
 }
 
 //  ユーザーを追加する
@@ -247,10 +252,19 @@ func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			idStr := strconv.FormatInt(at.Id, 10)
-			c.Infof("Sending access token %s to user %d", idStr, at.UserId)
+			c.Infof("Sending access token %d to user %d", at.Id, at.UserId)
+
+			msg := AccessTokenMessage{
+				Id: at.Id,
+			}
+			b, err := json.Marshal(msg)
+			if err != nil {
+				c.Errorf("%s", err.Error())
+				http.Error(w, "Error while authenticating", http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "text/plain")
-			w.Write([]byte(idStr))
+			w.Write(b)
 			return
 		}
 	}
