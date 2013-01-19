@@ -16,9 +16,9 @@ angular.module('cadmis.service', ['ngResource']).
 		}
 
 		// プロフィールを取得する
-		service.getProfile = function(id) {
-			var Profile = $resource('/api/1/user_profile/:userId', {userId:'@id'});
-			var profile = Profile.get( {userId: id}, function() {
+		service.getProfile = function(userId, accessToken) {
+			var Profile = $resource('/api/1/user_profile', { ui: userId, at: accessToken});
+			var profile = Profile.get( {}, function() {
 			});
 		}
 
@@ -38,9 +38,13 @@ angular.module('cadmis.service', ['ngResource']).
 		// session storageに保存したアクセストークンがあればそれを使う
 		var storage = sessionStorage;
 		var token = storage.getItem(constants.AccessTokenKey);
+		var userId = storage.getItem(constants.UserIdKey);
 
 		// ログイン済みかを示すトークン
 		service.accessToken = token;
+
+		// ユーザーID
+		service.userId = userId; 
 
 		// ログイン済みかどうか
 		service.authenticated = function() {
@@ -62,10 +66,13 @@ angular.module('cadmis.service', ['ngResource']).
 			var success = function(response) {
 				console.log("Got access token: " + response.Id);
 				var token = response.Id;
+				var userId = response.UserId;
 				service.accessToken = token;
+				service.userId = userId;
 
 				// ブラウザ側にトークンを保存する
 				sessionStorage.setItem(constants.AccessTokenKey, service.accessToken);
+				sessionStorage.setItem(constants.UserIdKey, service.userId);
 
 				onSuccess(response);
 
@@ -78,7 +85,7 @@ angular.module('cadmis.service', ['ngResource']).
 		// トークンを破棄する
 		service.disposeToken = function() {
 			this.accessToken = null;
-			sessionStorage.removeItem(constants.AccessTokenKey);
+			sessionStorage.clear();
 			this.notifyAuthenticationChanged();
 		}
 

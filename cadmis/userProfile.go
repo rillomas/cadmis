@@ -1,7 +1,7 @@
 package cadmis
 
 import (
-	// "appengine"
+	"appengine"
 	//"fmt"
 	// "appengine/user"
 	// "appengine/datastore"
@@ -9,7 +9,7 @@ import (
 	// "encoding/json"
 	// "io/ioutil"
 	"net/http"
-	// "strconv"
+	"strconv"
 	"time"
 )
 
@@ -45,5 +45,49 @@ type UserInformation struct {
 	JoinDate   time.Time // 加入日
 }
 
+type UserInformationQuery struct {
+	AccessTokenId int64
+	UserId        int64
+}
+
 func handleUserProfileRequest(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	c.Infof("Method: %s Url:%s ContentLength: %d\n", r.Method, r.URL, r.ContentLength)
+
+	// リクエストをパースする
+	accessTokenIdStr := r.FormValue("at")
+	userIdStr := r.FormValue("ui")
+
+	base := 0
+	bitSize := 64
+	userId, err := strconv.ParseInt(userIdStr, base, bitSize)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	accessTokenId, err := strconv.ParseInt(accessTokenIdStr, base, bitSize)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	c.Infof("UserId: %d AccessTokenId: %d\n", userId, accessTokenId)
+
+	// ユーザーに発行されたトークンが正しいか確かめる
+	match, _, err := accessTokenMatches(c, userId, accessTokenId)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !match {
+		http.Error(w, "Access token does not match user.", http.StatusUnauthorized)
+		return
+	}
+
+	// ユーザーの情報をもってきて返す
+
 }

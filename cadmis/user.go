@@ -34,11 +34,6 @@ type AccessToken struct {
 	UserId int64 // アクセストークンを発行されたユーザーのID
 }
 
-// アクセストークンをクライアントへ送るときのメッセージ
-type AccessTokenMessage struct {
-	Id int64
-}
-
 //  ユーザーを追加する
 func addUser(c appengine.Context, email, password string) error {
 
@@ -77,6 +72,12 @@ func userExists(c appengine.Context, email string) (bool, error) {
 // アクセストークンが発行済みかどうかを調べる
 func accessTokenPublished(c appengine.Context, userId int64) (bool, *datastore.Query, error) {
 	q := datastore.NewQuery(AccessTokenEntity).Limit(1).Filter("UserId =", userId)
+	count, err := q.Count(c)
+	return count > 0, q, err
+}
+
+func accessTokenMatches(c appengine.Context, userId, accessToken int64) (bool, *datastore.Query, error) {
+	q := datastore.NewQuery(AccessTokenEntity).Limit(1).Filter("UserId =", userId).Filter("Id =", accessToken)
 	count, err := q.Count(c)
 	return count > 0, q, err
 }
@@ -214,11 +215,7 @@ func handleAccessTokenRequest(w http.ResponseWriter, r *http.Request) {
 			}
 
 			c.Infof("Sending access token %d to user %d", at.Id, at.UserId)
-
-			msg := AccessTokenMessage{
-				Id: at.Id,
-			}
-			b, err := json.Marshal(msg)
+			b, err := json.Marshal(at)
 			if err != nil {
 				c.Errorf("%s", err.Error())
 				http.Error(w, "Error while authenticating", http.StatusInternalServerError)
