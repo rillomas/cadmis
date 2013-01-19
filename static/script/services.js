@@ -8,11 +8,26 @@ angular.module('cadmis.service', ['ngResource']).
 
 		// 新規ユーザー追加機能
 		service.signUp = function(email, password, onSuccess, onError) {
-			var User = $resource('/api/1/user/');
+			var User = $resource('/api/1/user');
 			var newUser = new User();
 			newUser.Email = email;
 			newUser.Password = password;
 			newUser.$save({}, onSuccess, onError);
+		}
+
+		// プロフィールを取得する
+		service.getProfile = function(id) {
+			var Profile = $resource('/api/1/user_profile/:userId', {userId:'@id'});
+			var profile = Profile.get( {userId: id}, function() {
+			});
+		}
+
+		// プロフィールを適用する
+		service.applyProfile = function(profile, onSuccess, onError) {
+			var Profile = $resource('/api/1/user_profile/:userId', {userId:'@id'});
+			var newProf = new Profile();
+			newProf.Profile = profile;
+			newProf.$save({}, onSuccess, onError);
 		}
 		return service;
 	}).
