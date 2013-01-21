@@ -5,6 +5,7 @@ import (
 	"fmt"
 	//    "io"
 	"io/ioutil"
+    "math/rand"
 	// "appengine/user"
 	"appengine/datastore"
 	"appengine/urlfetch"
@@ -101,10 +102,10 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
         exam.Name = goals2[i].(map[string]interface{})["title"].(string)
 		//exam.Category = "English";
 		// /*
-		var er ExamResult
-		if i < 5 {
-			er.UserId = 1 // + int64(i)
-			er.ExamId = exam.Id
+		var er [10]ExamResult
+		for k := 0; k < 10; k++ {
+			er[k].UserId = 42 + int64(k)
+			er[k].ExamId = exam.Id
 		}
 		// */
 		client := urlfetch.Client(c)
@@ -140,21 +141,25 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
 			}
 			exam.ProblemList = append(exam.ProblemList, key)
 			// /*
-			if i < 5 {
-				var pr ProblemResult
-				pr.ProblemId = problem.Id
-				if i < 7 {
-					pr.Correct = true
+            pr := make([]ProblemResult, 10, 10)
+            keys := make([]*datastore.Key, 10, 10)
+			for k := 0; k < 10; k++ {
+				pr[k].ProblemId = problem.Id
+				if rand.Int()%2 == 0 {
+					pr[k].Correct = true
 				} else {
-					pr.Correct = false
+					pr[k].Correct = false
 				}
-				key, err2 := datastore.Put(c, datastore.NewIncompleteKey(c, "ProblemResult", nil), &pr)
-				if err2 != nil {
-					http.Error(w, err2.Error(), http.StatusInternalServerError)
-					return
-				}
-				er.ProblemList = append(er.ProblemList, key)
+                keys[k] = datastore.NewIncompleteKey(c, "ProblemResult", nil);
 			}
+			keys2, err2 := datastore.PutMulti(c, keys, pr)
+			if err2 != nil {
+				http.Error(w, err2.Error(), http.StatusInternalServerError)
+				return
+			}
+            for k := 0; k < 10; k++ {
+				er[k].ProblemList = append(er[k].ProblemList, keys2[k])
+            }
 			// */
 		}
 		_, err4 := datastore.Put(c, datastore.NewIncompleteKey(c, "Exam", nil), &exam)
@@ -163,8 +168,8 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// /*
-		if i < 5 {
-			_, err5 := datastore.Put(c, datastore.NewIncompleteKey(c, "ExamResult", nil), &er)
+		for k := 0; k < 10; k++ {
+			_, err5 := datastore.Put(c, datastore.NewIncompleteKey(c, "ExamResult", nil), &er[k])
 			if err5 != nil {
 				http.Error(w, err5.Error(), http.StatusInternalServerError)
 				return
@@ -176,20 +181,21 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
 
 func getExamResultScore(c appengine.Context, e ExamResult) (error, float64) {
 	var score float64
+	pr := make([]ProblemResult, len(e.ProblemList))
+	if err := datastore.GetMulti(c, e.ProblemList, pr); err != nil {
+		return err, score
+	}
 	for i := range e.ProblemList {
-		pr := new(ProblemResult)
-		if err := datastore.Get(c, e.ProblemList[i], pr); err != nil {
-			return err, score
-		}
-		if pr.Correct {
-			q := datastore.NewQuery(ProblemEntity).Filter("Id =", pr.ProblemId).Limit(1)
-			problems := make([]Problem, 0, 1)
-			if _, err := q.GetAll(c, &problems); err != nil {
-				return err, score
-			}
-            if (len(problems) > 0) {
-			    score += problems[0].Score
-            }
+		if pr[i].Correct {
+            score += 10;
+//			q := datastore.NewQuery(ProblemEntity).Filter("Id =", pr.ProblemId).Limit(1)
+//			problems := make([]Problem, 0, 1)
+//			if _, err := q.GetAll(c, &problems); err != nil {
+//				return err, score
+//			}
+//            if (len(problems) > 0) {
+//			    score += problems[0].Score
+//            }
 		}
 	}
 	return nil, score
