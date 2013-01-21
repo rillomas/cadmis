@@ -21,6 +21,7 @@ head.js(
 	"http://ajax.googleapis.com/ajax/libs/angularjs/1.0.3/angular.min.js",
 	"http://ajax.googleapis.com/ajax/libs/angularjs/1.0.3/angular-resource.min.js",
 	"script/bootstrap.min.js",
+	"script/processing-1.4.1.min.js",
 
 	// アプリ全体で使用する部品
 	"script/constants.js",
