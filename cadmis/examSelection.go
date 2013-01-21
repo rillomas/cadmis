@@ -22,9 +22,11 @@ const (
 )
 
 type Rank struct {
-	ExamId int64
-	UserId int64
-	Score  float64
+	ExamId   int64
+    ExamName string
+	UserId   int64
+    UserName string
+	Score    float64
 }
 
 func handleComputeRank(w http.ResponseWriter, r *http.Request) {
@@ -96,6 +98,7 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
 
 		var exam Exam
 		exam.Id = int64(goals2[i].(map[string]interface{})["id"].(float64))
+        exam.Name = goals2[i].(map[string]interface{})["title"].(string)
 		//exam.Category = "English";
 		// /*
 		var er ExamResult
@@ -184,7 +187,9 @@ func getExamResultScore(c appengine.Context, e ExamResult) (error, float64) {
 			if _, err := q.GetAll(c, &problems); err != nil {
 				return err, score
 			}
-			score += problems[0].Score
+            if (len(problems) > 0) {
+			    score += problems[0].Score
+            }
 		}
 	}
 	return nil, score
@@ -219,7 +224,18 @@ func computeRank(c appengine.Context, userId int64, examId int64) ([]Rank, error
 			if err != nil {
 				return score, err
 			}
-			score = append(score, Rank{e.ExamId, e.UserId, s})
+            var userName,examName string;
+            var userProf []UserProfile
+            var exam []Exam
+	        q := datastore.NewQuery("UserProfile").Filter("UserId =", e.UserId)
+	        if _, err := q.GetAll(c, &userProf); err == nil && len(userProf) > 0 {
+		        userName = userProf[0].FirstName + " " + userProf[0].LastName
+	        }
+	        q2 := datastore.NewQuery("Exam").Filter("Id =", e.ExamId)
+	        if _, err := q2.GetAll(c, &exam); err == nil && len(exam) > 0 {
+		        examName = exam[0].Name
+	        }
+			score = append(score, Rank{e.ExamId, examName, e.UserId, userName, s})
 		}
 	}
 	return score, nil

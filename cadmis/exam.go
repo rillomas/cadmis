@@ -65,6 +65,7 @@ type Problem struct {
 // 試験
 type Exam struct {
 	Id          int64
+    Name        string
 	ProblemList []*datastore.Key
 }
 
