@@ -13,22 +13,17 @@ var SketchState = function() {
 SketchState.prototype = {
   set_sun: function(sun_) {
     this.sun = sun_;
-    //for (var planet in this.planets) {
-    //  console.log("planet:" + planet);
-    //}
   },
 
   add_planet: function(planet_) {
     this.planets.push(planet_);
-    //if (this.sun) {
-    //  console.log("sun:" + this.sun);
-    //}
   }
 }
 
 // ユーザ情報オブジェクト
-var User = function(id_, rating_) {
+var User = function(id_, name_, rating_) {
   this.id = id_;
+  this.name = name_;
   this.rating = rating_;
   this.radius = undefined;
   this.x = undefined;
@@ -49,8 +44,9 @@ User.prototype = {
 }
 
 // テスト結果オブジェクト
-var Test = function(id_, rating_) {
+var Exam = function(id_, name_, rating_) {
   this.id = id_;
+  this.name = name_;
   this.rating = rating_;
   this.radius = undefined;
   this.x = undefined;
@@ -61,9 +57,9 @@ var Test = function(id_, rating_) {
   this.a = 128;
 }
 
-Test.prototype = {
+Exam.prototype = {
   type: function() {
-    return "Test";
+    return "Exam";
   },
   get_rating: function() {
     return 3*this.rating;
@@ -90,10 +86,10 @@ function updateResult(target, sketch_state) {
   sketch_state.set_sun(target);
   sketch_state.planets.length = 0;
   if ("User" == target.type()) {
-    sketch_state.add_planet(new Test("Q1", 10));
-    sketch_state.add_planet(new Test("Q2", 20));
-    sketch_state.add_planet(new Test("Q3", 30));
-  } else { // "Test"
+    sketch_state.add_planet(new Exam("Q1", 10));
+    sketch_state.add_planet(new Exam("Q2", 20));
+    sketch_state.add_planet(new Exam("Q3", 30));
+  } else { // "Exam"
     sketch_state.add_planet(new User("Futatsugi", 10));
     sketch_state.add_planet(new User("Hori", 10));
     sketch_state.add_planet(new User("Samuel", 10));
@@ -121,12 +117,12 @@ function textCircular(p, msg, center_x, center_y, radius, theta) {
 /**
  * ランキング画面のコントローラー
  */
-function RankingController($scope, $routeParams, ranking, authenticate) {
+function RankingController($scope, $routeParams, ranking, authenticate, user) {
 //function RankingController($scope, $routeParams, $http) {
   
   function sketch(p) {
     p.setup = function() {
-      p.size(window.innerWidth/2, window.innerHeight/1.5);
+      p.size(window.innerWidth, window.innerHeight);
       p.frameRate(framerate);
       p.smooth();
       p.textAlign(p.CENTER, p.CENTER);
@@ -140,7 +136,10 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
       var bias = calcBias($scope.sketch_state.transcount);
 
       p.background(0);
-      p.fill(255, 255, 255);
+
+      if (!$scope.sketch_state.busy) {
+        p.fill(255, 255, 255);
+      }
 
       // determine center and max clock arm length
       var center_x = p.width / 2;
@@ -173,7 +172,7 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
           p.ellipse(planet.x, planet.y, planet.radius, planet.radius);
 
           p.fill(255, 255, 255);
-          p.text(String(planet.id), planet.x, planet.y);
+          p.text(planet.name + ":" + String(planet.rating), planet.x, planet.y);
           
           p.popMatrix();
           })();
@@ -193,14 +192,14 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
          p.ellipse(sun.x, sun.y, sun.radius, sun.radius);
          
          p.fill(255, 255, 255);
-         p.text(String(sun.id), sun.x, sun.y);
+         p.text(sun.name + ":" + String(sun.rating), sun.x, sun.y);
        }
       })();
 
       // オーバーレイ
       if ($scope.sketch_state.busy) {
-        p.stroke(255, 255, 255);
-        p.fill(255, 255, 255);
+        p.stroke(255, 255, 255, 128);
+        p.fill(255, 255, 255, 128);
         p.rect(0, 0, p.width, p.height);
         p.fill(0, 0, 0);
         p.text("Loading...", p.width/2, p.height/2);
@@ -241,44 +240,45 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
           ranking.getGoals(target.id, function(data) {
 
               for (var i in data) {
-                $scope.sketch_state.planets.push(new Test(data[i].ExamId, data[i].Score/10));
+                $scope.sketch_state.planets.push(new Exam(data[i].ExamId, data[i].ExamName, data[i].Score/10));
               }
 
-              $scope.sketch_state.set_sun(new User(target.id, 30));
+              $scope.sketch_state.set_sun(new User(target.id, target.name, 30));
+              $scope.sketch_state.transcount = 0;
               $scope.sketch_state.busy = false;
           });
         } else {
           ranking.getUsers(target.id, function(data) {
               
               for (var i in data) {
-                $scope.sketch_state.planets.push(new User(data[i].UserId, data[i].Score/10));
+                $scope.sketch_state.planets.push(new User(data[i].UserId, data[i].UserName, data[i].Score/10));
               }
 
-              $scope.sketch_state.set_sun(new Test(target.id, 30));
+              $scope.sketch_state.set_sun(new Exam(target.id, target.name, 30));
+              $scope.sketch_state.transcount = 0;
               $scope.sketch_state.busy = false;
           });
         }
-         
-        //updateResult(target, $scope.sketch_state);
       }
     }
   }
   
   $scope.sketch_state = new SketchState();
-  
-  authenticate.userId = 42;
-  
+   
   $scope.sketch_state.busy = true;
-  $scope.sketch_state.transcount = 0;
   $scope.sketch_state.planets.length = 0;
-
+     
   ranking.getGoals(authenticate.userId, function(data) {
 
+      var user_name = "You";
+      
       for (var i in data) {
-        $scope.sketch_state.planets.push(new Test(data[i].ExamId, data[i].Score/10));
+        user_name = data[i].UserName;
+        $scope.sketch_state.planets.push(new Exam(data[i].ExamId, data[i].ExamName, data[i].Score/10));
       }
       
-      $scope.sketch_state.set_sun(new User(authenticate.userId, 30));
+      $scope.sketch_state.set_sun(new User(authenticate.userId, user_name, 30));
+      $scope.sketch_state.transcount = 0;
       $scope.sketch_state.busy = false;
   });
 

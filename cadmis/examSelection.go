@@ -103,7 +103,7 @@ func handleInitExams(w http.ResponseWriter, r *http.Request) {
 		// /*
 		var er ExamResult
 		if i < 5 {
-			er.UserId = 42 // + int64(i)
+			er.UserId = 1 // + int64(i)
 			er.ExamId = exam.Id
 		}
 		// */
