@@ -57,16 +57,16 @@ type CalculatedProblemScore struct {
 }
 
 // 問題
-// type Problem struct {
-// 	Id    int64
-// 	Score int32
-// }
+type Problem struct {
+	Id    int64
+	Score float64
+}
 
 // 試験
-// type Exam struct {
-// 	Id          int64
-// 	ProblemList []*datastore.Key
-// }
+type Exam struct {
+	Id          int64
+	ProblemList []*datastore.Key
+}
 
 // 問題の統計情報
 // type ProblemStatistics struct {
@@ -107,44 +107,44 @@ func processExamPostRequest(c appengine.Context, w http.ResponseWriter, r *http.
 	}
 
 	exam := req.Result
-	// storeExam := ExamResult{
-	// 	UserId:       exam.UserId,
-	// 	ExamId:       exam.ExamId,
-	// 	StartTime:    exam.StartTime,
-	// 	FinishedTime: exam.FinishedTime,
-	// }
+	storeExam := ExamResult{
+		UserId:       exam.UserId,
+		ExamId:       exam.ExamId,
+		StartTime:    exam.StartTime,
+		FinishedTime: exam.FinishedTime,
+	}
 
-	// // 試験結果を格納する
-	// c.Infof("Storing exam result")
-	// examKey := datastore.NewIncompleteKey(c, ExamResultEntity, nil)
-	// examKey, err = datastore.Put(c, examKey, &storeExam)
-	// if err != nil {
-	// 	c.Errorf("%s", err.Error())
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
+	// 試験結果を格納する
+	c.Infof("Storing exam result")
+	examKey := datastore.NewIncompleteKey(c, ExamResultEntity, nil)
+	examKey, err = datastore.Put(c, examKey, &storeExam)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	// c.Infof("Storing problem result")
-	// problemKeyList := []*datastore.Key{}
-	// for _, p := range exam.ProblemList {
-	// 	// 問題の結果を格納する
-	// 	pKey := datastore.NewIncompleteKey(c, ProblemResultEntity, examKey)
-	// 	pKey, err = datastore.Put(c, pKey, &p)
-	// 	if err != nil {
-	// 		c.Errorf("%s", err.Error())
-	// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	problemKeyList = append(problemKeyList, pKey)
-	// }
+	c.Infof("Storing problem result")
+	problemKeyList := []*datastore.Key{}
+	for _, p := range exam.ProblemList {
+		// 問題の結果を格納する
+		pKey := datastore.NewIncompleteKey(c, ProblemResultEntity, examKey)
+		pKey, err = datastore.Put(c, pKey, &p)
+		if err != nil {
+			c.Errorf("%s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		problemKeyList = append(problemKeyList, pKey)
+	}
 
-	// storeExam.ProblemList = problemKeyList
-	// _, err = datastore.Put(c, examKey, &storeExam)
-	// if err != nil {
-	// 	c.Errorf("%s", err.Error())
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
+	storeExam.ProblemList = problemKeyList
+	_, err = datastore.Put(c, examKey, &storeExam)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// 結果をサーバーに送りつけて評価してもらう
 	err = reEvaluateProblemScore(c, exam)
