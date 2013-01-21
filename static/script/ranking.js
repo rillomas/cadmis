@@ -36,6 +36,7 @@ var User = function(id_, rating_) {
   this.r = 255;
   this.g = 0;
   this.b = 204;
+  this.a = 128;
 }
 
 User.prototype = {
@@ -57,6 +58,7 @@ var Test = function(id_, rating_) {
   this.r = 51;
   this.g = 153;
   this.b = 255;
+  this.a = 128;
 }
 
 Test.prototype = {
@@ -239,7 +241,7 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
           ranking.getGoals(target.id, function(data) {
 
               for (var i in data) {
-                $scope.sketch_state.planets.push(new Test(data[i].ProblemId, data[i].Score/10));
+                $scope.sketch_state.planets.push(new Test(data[i].ExamId, data[i].Score/10));
               }
 
               $scope.sketch_state.set_sun(new User(target.id, 30));
@@ -248,7 +250,6 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
         } else {
           ranking.getUsers(target.id, function(data) {
               
-              console.log(data);
               for (var i in data) {
                 $scope.sketch_state.planets.push(new User(data[i].UserId, data[i].Score/10));
               }
@@ -274,7 +275,7 @@ function RankingController($scope, $routeParams, ranking, authenticate) {
   ranking.getGoals(authenticate.userId, function(data) {
 
       for (var i in data) {
-        $scope.sketch_state.planets.push(new Test(data[i].ProblemId, data[i].Score/10));
+        $scope.sketch_state.planets.push(new Test(data[i].ExamId, data[i].Score/10));
       }
       
       $scope.sketch_state.set_sun(new User(authenticate.userId, 30));
