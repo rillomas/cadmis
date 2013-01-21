@@ -64,6 +64,8 @@ void read_problems(const char* fname, vector<Problem>& problems)
 
 int main(int argc, char* argv[])
 {
+	task_scheduler_init init;
+
 	vector<Problem> problems;
 
 	read_problems(argv[1], problems);
