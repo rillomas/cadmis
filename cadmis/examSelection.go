@@ -22,9 +22,9 @@ const (
 )
 
 type Rank struct {
-	ProblemId int64
-	UserId    int64
-	Score     float64
+	ExamId int64
+	UserId int64
+	Score  float64
 }
 
 func handleComputeRank(w http.ResponseWriter, r *http.Request) {
