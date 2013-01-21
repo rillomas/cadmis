@@ -1,0 +1,7 @@
+<div>
+	<h3>Problem {{model.id}}</h3>
+	<p>{{model.target}}</p>
+	<label class="radio" ng-repeat="option in model.optionList">
+		<input type="radio" name="options{{model.id}}" ng-model="selected">{{option.description}}
+	</label>
+</div>

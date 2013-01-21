@@ -91,4 +91,75 @@ angular.module('cadmis.service', ['ngResource']).
 		};
 
 		return service;
+	}).
+	// 試験問題を取得するサービス
+	factory('exam', function($http) {
+
+		var service = {};
+		service.scheme = "http";
+		service.domain = "api.iknow.jp";
+		service.port = "80";
+		// service.itemId = "34891";
+
+		// 項目の一覧を取得するURLを生成する
+		service.generateItemsUrl = function(goalId) {
+			return "{0}://{1}:{2}/goals/{3}/items?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, goalId);
+		};
+
+		// 項目ごとの選択肢を取得するURLを取得する
+		service.generateDistractorUrl = function(goalId, itemId) {
+			return "{0}://{1}:{2}/goals/{3}/items/{4}/distractors?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, goalId, itemId);
+		};
+
+		// 試験問題を取得する
+		service.getExam = function (goalId, onSuccess, onError) {
+			var cueId = "cue";
+			var responseId = "response";
+			var contentId = "content";
+			var textId = "text";
+			var url = service.generateItemsUrl(goalId);
+			console.log("Getting exam from: " + url);
+			// $http.jsonp(url).success(onSuccess).error(onError);
+			$http.jsonp(url).success(function(data, status, headers, config) {
+
+				// 問題のリストを作る
+				var problemList = [];
+				angular.forEach(data.items, function(item) {
+					var hasCue = cueId in item;
+					var hasResponse = responseId in item;
+
+					var target = item[cueId][contentId][textId];
+					var answer = item[responseId][contentId][textId];
+
+					// 問題ごとの選択肢をつくる
+					var distractorUrl = service.generateDistractorUrl(goalId, item.id);
+					$http.jsonp(distractorUrl).success(function(d, s, h ,c) {
+						console.log("Got distractor for " + distractorUrl);
+						var optionList = [];
+						var distractorList = d.distractors[item.id][responseId];
+						angular.forEach(distractorList, function(opt) {
+							optionList.push({
+								description: opt.text,
+								selected: false
+							});
+						});
+						var problem = {
+							id: item.id,
+							target : target,
+							answer : answer,
+							optionList: optionList,
+							solving: false
+						};
+						console.log(problem);
+						problemList.push(problem);
+					}).error(function(d, s, h, c) {
+					});
+				});
+				onSuccess(problemList);	
+			}).error(function(data, status, headers, config) {
+				onError([]);
+			});
+		};
+
+		return service;
 	});

@@ -1,6 +1,19 @@
 "use strict";
 
 /**
+ * 文字列format関数
+ */
+String.prototype.format = function() {
+  var args = arguments;
+  return this.replace(/{(\d+)}/g, function(match, number) { 
+    return typeof args[number] != 'undefined'
+      ? args[number]
+      : match
+    ;
+  });
+};
+
+/**
  * 必要なスクリプトを読み込む
  */
 head.js(

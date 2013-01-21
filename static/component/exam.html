@@ -1,3 +1,22 @@
 <div>
 	<h2>Exam</h2>
+	<form class="form-horizontal" name="examForm">
+		<div class="control-group">
+			<div class="controls">
+				<input type="text" placeholder="Goal ID" ng-model="goalId" required>
+			</div>
+		</div>
+		<div class="control-group">
+			<div class="controls">
+				<button type="submit" class="btn" ng-disabled="examForm.$invalid || busy" ng-click="startExam(goalId)">Start exam</button>
+			</div>
+		</div>
+	</form>
+	<div>
+		<ul>
+			<li ng-repeat="problem in problemList">
+				<problem ng-class="{active: solving}" model="problem"></problem>
+			</li>
+		</ul>
+	</div>
 </div>

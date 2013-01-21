@@ -90,4 +90,18 @@ angular.module('cadmis.component',['cadmis.service']).
 			templateUrl: 'component/greeting.html',
 			replace: true
 		};
+	}).
+	directive('problem', function() {
+		return {
+			restrict: 'E',
+			transclude: false,
+			scope: {
+				model: '='
+			},
+			controller: function ($scope, $element) {
+				$scope.solving = false;
+			},
+			templateUrl: 'component/problem.html',
+			replace: true
+		};
 	});
