@@ -42,16 +42,16 @@ type StoreExamResultRequest struct {
 }
 
 // 問題
-// type Problem struct {
-// 	Id    int64
-// 	Score int32
-// }
+ type Problem struct {
+ 	Id    int64
+ 	Score int32
+ }
 
 // 試験
-// type Exam struct {
-// 	Id          int64
-// 	ProblemList []*datastore.Key
-// }
+ type Exam struct {
+ 	Id          int64
+ 	ProblemList []*datastore.Key
+ }
 
 // 問題の統計情報
 // type ProblemStatistics struct {
