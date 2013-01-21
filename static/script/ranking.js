@@ -1,3 +1,17 @@
+var id_name = 
+{ 42:"Noriyuki Futatsugi"
+, 43:"Masato Hori"
+, 44:"Samuel Audet"
+, 45:"Takuro Iizuka"
+, 46:"Nobunaga Oda"
+, 47:"Ieyasu Tokugawa"
+, 48:"Hideyoshi Toyotomi"
+, 49:"Jack Bauer"
+, 50:"Simo Hayha"
+, 51:"foo"
+, 52:"bar"
+};
+
 var framerate = 60;
 
 // スケッチの状態
@@ -22,6 +36,7 @@ SketchState.prototype = {
 
 // ユーザ情報オブジェクト
 var User = function(id_, name_, rating_) {
+
   this.id = id_;
   this.name = name_;
   this.rating = rating_;
@@ -126,6 +141,7 @@ function RankingController($scope, $routeParams, ranking, authenticate, user) {
       p.frameRate(framerate);
       p.smooth();
       p.textAlign(p.CENTER, p.CENTER);
+      //p.textFont(p.loadFont("Courier New"), 20);
     }
 
     // 毎フレーム描画コールバック
@@ -167,12 +183,12 @@ function RankingController($scope, $routeParams, ranking, authenticate, user) {
           p.stroke(255);
           p.line(planet.x, planet.y, center_x, center_y);
 
-          p.stroke(planet.r, planet.g, planet.b);
+          p.stroke(255, 255, 255);
           p.fill(planet.r, planet.g, planet.b);
           p.ellipse(planet.x, planet.y, planet.radius, planet.radius);
 
           p.fill(255, 255, 255);
-          p.text(planet.name + ":" + String(planet.rating), planet.x, planet.y);
+          p.text(planet.name + " : " + String(planet.rating), planet.x, planet.y);
           
           p.popMatrix();
           })();
@@ -187,12 +203,12 @@ function RankingController($scope, $routeParams, ranking, authenticate, user) {
          sun.y = center_y;
          sun.radius = sun.get_rating();
          
-         p.stroke(sun.r, sun.g, sun.b);
+         p.stroke(255, 255, 255);
          p.fill(sun.r, sun.g, sun.b);
          p.ellipse(sun.x, sun.y, sun.radius, sun.radius);
          
          p.fill(255, 255, 255);
-         p.text(sun.name + ":" + String(sun.rating), sun.x, sun.y);
+         p.text(sun.name + " : " + String(sun.rating), sun.x, sun.y);
        }
       })();
 
@@ -251,7 +267,8 @@ function RankingController($scope, $routeParams, ranking, authenticate, user) {
           ranking.getUsers(target.id, function(data) {
               
               for (var i in data) {
-                $scope.sketch_state.planets.push(new User(data[i].UserId, data[i].UserName, data[i].Score/10));
+                var user_name = id_name[data[i].UserId];;
+                $scope.sketch_state.planets.push(new User(data[i].UserId, user_name, data[i].Score/10));
               }
 
               $scope.sketch_state.set_sun(new Exam(target.id, target.name, 30));
@@ -267,13 +284,14 @@ function RankingController($scope, $routeParams, ranking, authenticate, user) {
    
   $scope.sketch_state.busy = true;
   $scope.sketch_state.planets.length = 0;
+  authenticate.userId = 42; // initial data injecting hack
      
   ranking.getGoals(authenticate.userId, function(data) {
-
+      
       var user_name = "You";
       
       for (var i in data) {
-        user_name = data[i].UserName;
+        user_name = id_name[data[i].UserId];;
         $scope.sketch_state.planets.push(new Exam(data[i].ExamId, data[i].ExamName, data[i].Score/10));
       }
       
