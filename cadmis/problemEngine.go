@@ -30,6 +30,11 @@ type Problem struct {
     Score    int64
 }
 
+type Rank struct {
+    ProblemId int64
+    UserId    int64
+    Score     int64
+}
 
 func handleComputeRank(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
@@ -49,41 +54,6 @@ func handleComputeRank(w http.ResponseWriter, r *http.Request) {
     out, _ := json.Marshal(score)
     fmt.Fprint(w, string(out))
 }
-
-func handleProblemList(w http.ResponseWriter, r *http.Request) {
-    c := appengine.NewContext(r)
-    q := datastore.NewQuery("Problem")
-    var problems []Problem
-    _, err := q.GetAll(c, &problems)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return;
-    }
-    ids := make([]int64, len(problems), len(problems))
-    for i := range problems {
-        ids[i] = problems[i].Id;
-    }
-    out, _ := json.Marshal(ids)
-    fmt.Fprint(w, string(out))
-}
-
-func handleUserList(w http.ResponseWriter, r *http.Request) {
-    c := appengine.NewContext(r)
-    q := datastore.NewQuery("User")
-    var users []User
-    _, err := q.GetAll(c, &users)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return;
-    }
-    ids := make([]int64, len(users), len(users))
-    for i := range users {
-        ids[i] = users[i].Id;
-    }
-    out, _ := json.Marshal(ids)
-    fmt.Fprint(w, string(out))
-}
-
 
 func handleWriteEntry(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
@@ -190,8 +160,8 @@ func updateProblem(c appengine.Context, problemId int64, category string, score 
     return nil;
 }
 
-func computeRank(c appengine.Context, userId int64, problemId int64) (int64, error) {
-    var score int64
+func computeRank(c appengine.Context, userId int64, problemId int64) ([]Rank, error) {
+    score := make([]Rank, 0, 0)
     q := datastore.NewQuery("Entry")
     for t := q.Run(c); ; {
         var e Entry;
@@ -205,34 +175,78 @@ func computeRank(c appengine.Context, userId int64, problemId int64) (int64, err
         if e.Result && (userId == -1 || e.UserId == userId) && (problemId == -1 || e.ProblemId == problemId) {
             q := datastore.NewQuery("Problem").Filter("Id =", e.ProblemId).Limit(1)
             problems := make([]Problem, 0, 1)
-            if _, err2 := q.GetAll(c, &problems); err != nil {
+            if _, err2 := q.GetAll(c, &problems); err2 != nil {
                 return score, err2
             }
-            score += problems[0].Score
+            score = append(score, Rank{e.UserId, problems[0].Id, problems[0].Score})
         }
     }
     return score, nil
 }
 
-/*
-func getSuitableProblem(c appengine.Context, userId int64) {
-    q := datastore.NewQuery("Problem").Order("-Date").Limit(10)
-    problems := make([]Problem, 0, 10)
-    if _, err := q.GetAll(c, &problems); err != nil {
+func handleGetProblem(w http.ResponseWriter, r *http.Request) {
+    c := appengine.NewContext(r)
+    uid, err1 := strconv.Atoi(r.FormValue("userId"));
+    if err1 != nil {
+        http.Error(w, err1.Error(), http.StatusInternalServerError)
+        return;
+    }
+
+    var entries []Entry
+    q := datastore.NewQuery("Entry").Filter("UserId =", uid)
+    if _, err := q.GetAll(c, &entries); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
 
-    for (p : problems) {
-        if (p.Result) {
-            q := datastore.NewQuery("Problem");
-            if _, err := q.GetAll(c, &problems); err != nil {
-                http.Error(w, err.Error(), http.StatusInternalServerError)
-                return
-            }
-            score += p.Score
+    var score int64
+    score = 0;
+    for i := range entries {
+        q := datastore.NewQuery("Problem").Filter("Id =", entries[i].ProblemId).Limit(1)
+        problems := make([]Problem, 0, 1)
+        if _, err2 := q.GetAll(c, &problems); err2 != nil {
+            return
         }
+        score += problems[0].Score;
+    }
+    if len(entries) > 0 {
+        score = score / int64(len(entries))
+    }
+    score += 10 // boost level up!
+
+    q2 := datastore.NewQuery("Problem")
+    var problems []Problem
+    if _, err := q2.GetAll(c, &problems); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
     }
 
+    var newProblem int64
+    var newScore int64
+    newProblem = -1
+    newScore = -1
+    for i := range problems {
+        var entries []Entry
+        q := datastore.NewQuery("Entry").Filter("UserId =", uid).Filter("ProblemId =", problems[i].Id).Limit(1)
+        if _, err := q.GetAll(c, &entries); err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+        one := problems[i].Score-score
+        two := newScore-score
+        if one < 0 {
+            one = -one
+        }
+        if two < 0 {
+            two = -two;
+        }
+        if len(entries) == 0 && (newScore < 0 || one < two ) {
+            newProblem = problems[i].Id;
+            newScore = problems[i].Score
+            break;
+        }
+    }
+    out, _ := json.Marshal(newProblem)
+    fmt.Fprint(w, string(out))
 }
-*/
+
