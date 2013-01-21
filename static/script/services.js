@@ -194,7 +194,11 @@ angular.module('cadmis.service', ['ngResource']).
 			var Exam = $resource('/api/1/exam');
 			var newExam = new Exam();
 			newExam.Result = result;
-			newExam.$save({}, onSuccess, onError);
+			newExam.$save({}, function() {
+				onSuccess(result);
+			}, function() {
+				onError(result);
+			});
 		};
 
 		return service;

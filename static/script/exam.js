@@ -6,6 +6,8 @@ function ExamController($scope, $routeParams, exam, authenticate) {
 	$scope.busy = false;
 	$scope.exam = null;
 	$scope.startTime = null;
+	$scope.result = null;
+	$scope.repeating = false;
 
 	// 試験を開始する
 	$scope.startExam = function() {
@@ -26,10 +28,29 @@ function ExamController($scope, $routeParams, exam, authenticate) {
 	$scope.submitExam = function(examResult) {
 		var endTime = new Date().getTime();
 		$scope.busy = true;
-		exam.submitExam(examResult, $scope.startTime, endTime, parseInt(authenticate.userId,10), function() {
+		exam.submitExam(examResult, $scope.startTime, endTime, parseInt(authenticate.userId,10), function(result) {
 			$scope.busy = false;
+			$scope.result = result;
+
+			var correctNum = 0;
+			var totalNum = 0;
+			angular.forEach(result.ProblemList, function(problem) {
+				totalNum++;
+				if (problem.Correct) {
+					correctNum++;
+				}
+			});
+			$scope.resultMessage = "Your test result was {0}/{1}".format(correctNum, totalNum);
 		}, function() {
 			$scope.busy = false;
 		});
+	};
+
+	$scope.startNextExam = function() {
+		$scope.repeating = true;
+		$scope.result = null;
+		$scope.resultMessage = null;
+		$scope.exam = null;
+		$scope.startExam();
 	};
 }
