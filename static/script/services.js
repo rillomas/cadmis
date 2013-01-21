@@ -13,22 +13,23 @@ angular.module('cadmis.service', ['ngResource']).
 			newUser.Email = email;
 			newUser.Password = password;
 			newUser.$save({}, onSuccess, onError);
-		}
+		};
 
 		// プロフィールを取得する
 		service.getProfile = function(userId, accessToken) {
 			var Profile = $resource('/api/1/user_profile', { ui: userId, at: accessToken});
 			var profile = Profile.get( {}, function() {
 			});
-		}
+			return profile;
+		};
 
 		// プロフィールを適用する
 		service.applyProfile = function(profile, onSuccess, onError) {
-			var Profile = $resource('/api/1/user_profile/:userId', {userId:'@id'});
+			var Profile = $resource('/api/1/user_profile');
 			var newProf = new Profile();
 			newProf.Profile = profile;
 			newProf.$save({}, onSuccess, onError);
-		}
+		};
 		return service;
 	}).
 	// 認証トークンを管理するサービス
@@ -49,12 +50,12 @@ angular.module('cadmis.service', ['ngResource']).
 		// ログイン済みかどうか
 		service.authenticated = function() {
 			return this.accessToken != null;
-		}
+		};
 
 		service.notifyAuthenticationChanged = function() {
 			var args = { "authenticated" : this.authenticated() };
 			$rootScope.$emit(constants.AuthenticationChangedEvent, args);
-		}
+		};
 
 		// トークンをリクエストする
 		service.requestToken = function(email, password, onSuccess, onError) {
@@ -78,16 +79,16 @@ angular.module('cadmis.service', ['ngResource']).
 
 				// 認証完了したのでイベントを飛ばす
 				service.notifyAuthenticationChanged();
-			}
+			};
 			newToken.$save({}, success, onError);
-		}
+		};
 
 		// トークンを破棄する
 		service.disposeToken = function() {
 			this.accessToken = null;
 			sessionStorage.clear();
 			this.notifyAuthenticationChanged();
-		}
+		};
 
 		return service;
 	});

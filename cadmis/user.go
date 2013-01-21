@@ -76,6 +76,7 @@ func accessTokenPublished(c appengine.Context, userId int64) (bool, *datastore.Q
 	return count > 0, q, err
 }
 
+// アクセストークンが適切かどうかを判定する
 func accessTokenMatches(c appengine.Context, userId, accessToken int64) (bool, *datastore.Query, error) {
 	q := datastore.NewQuery(AccessTokenEntity).Limit(1).Filter("UserId =", userId).Filter("Id =", accessToken)
 	count, err := q.Count(c)

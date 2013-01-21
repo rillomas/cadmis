@@ -3,22 +3,23 @@
 	<form class="form-horizontal" name="profileForm">
 		<div class="control-group">
 			<div class="controls">
-				<input type="text" id="inputEmail" placeholder="Email" ng-model="email" required>
+				<input type="text" placeholder="First Name" ng-model="profile.FirstName">
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
-				<input type="password" id="inputPassword" placeholder="Password" ng-model="password" required>
+				<input type="text" placeholder="Last Name" ng-model="profile.LastName">
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
 				<div class="alert alert-error" ng-class="{hide: errorMessage == ''}"><strong>Error</strong>: {{errorMessage}}</div>
+				<div class="alert alert-success" ng-class="{hide: successMessage == ''}">{{successMessage}}</div>
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
-				<button type="submit" class="btn" ng-disabled="profileForm.$invalid || busy" ng-click="apply()">Apply</button>
+				<button type="submit" class="btn" ng-disabled="busy" ng-click="apply(profile)">Apply</button>
 			</div>
 		</div>
 	</form>
