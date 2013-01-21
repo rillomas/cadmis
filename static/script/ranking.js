@@ -4,7 +4,10 @@ var framerate = 60;
 var SketchState = function() {
   this.sun = undefined;
   this.planets = [];
+  this.transcount = 0;
+  this.thetacount = 0;
   this.framecount = 0;
+  this.busy = true;
 }
 
 SketchState.prototype = {
@@ -81,15 +84,14 @@ function calcBias(count) {
   return Math.max(0.0, Math.min(1.0, Math.log(x)+1));
 }
 // 結果を更新
-function update_result(target, sketch_state) {
+function updateResult(target, sketch_state) {
   sketch_state.set_sun(target);
+  sketch_state.planets.length = 0;
   if ("User" == target.type()) {
-    sketch_state.planets.length = 0;
     sketch_state.add_planet(new Test("Q1", 10));
     sketch_state.add_planet(new Test("Q2", 20));
     sketch_state.add_planet(new Test("Q3", 30));
   } else { // "Test"
-    sketch_state.planets.length = 0;
     sketch_state.add_planet(new User("Futatsugi", 10));
     sketch_state.add_planet(new User("Hori", 10));
     sketch_state.add_planet(new User("Samuel", 10));
@@ -117,7 +119,8 @@ function textCircular(p, msg, center_x, center_y, radius, theta) {
 /**
  * ランキング画面のコントローラー
  */
-function RankingController($scope, $routeParams) {
+function RankingController($scope, $routeParams, ranking, authenticate) {
+//function RankingController($scope, $routeParams, $http) {
   
   function sketch(p) {
     p.setup = function() {
@@ -129,8 +132,10 @@ function RankingController($scope, $routeParams) {
 
     // 毎フレーム描画コールバック
     p.draw = function() {
+
+      var should_inc_theta = true;
       
-      var bias = calcBias($scope.sketch_state.framecount);
+      var bias = calcBias($scope.sketch_state.transcount);
 
       p.background(0);
       p.fill(255, 255, 255);
@@ -139,20 +144,23 @@ function RankingController($scope, $routeParams) {
       var center_x = p.width / 2;
       var center_y = p.height / 2;
 
+      var theta_offset = 2 * Math.PI * ($scope.sketch_state.thetacount % 3000) / 3000;
+
       // 遊星を描画
       (function() {
        var num = $scope.sketch_state.planets.length;
        for (var i=0; i<num; ++i) {
          var planet = $scope.sketch_state.planets[i];
-         var p_id = planet.id;
-         planet.x = center_x + bias * (p.width / 3) * Math.sin((2 * i * Math.PI) / num);
-         planet.y = center_y - bias * (p.height / 3) * Math.cos((2 * i * Math.PI) / num);
+         planet.x = center_x + bias * (p.width / 3) * Math.sin(theta_offset+(2 * i * Math.PI) / num);
+         planet.y = center_y - bias * (p.height / 3) * Math.cos(theta_offset+(2 * i * Math.PI) / num);
 
          (function () {
           if (isInCircle(p.mouseX, p.mouseY, planet)) {
             planet.radius = 1.1 * planet.get_rating();
+            should_inc_theta = false;
           } else {
             planet.radius = planet.get_rating();
+            should_inc_theta = should_inc_theta | false;
           }
 
           p.stroke(255);
@@ -163,7 +171,7 @@ function RankingController($scope, $routeParams) {
           p.ellipse(planet.x, planet.y, planet.radius, planet.radius);
 
           p.fill(255, 255, 255);
-          p.text(planet.id, planet.x, planet.y+planet.radius);
+          p.text(String(planet.id), planet.x, planet.y);
           
           p.popMatrix();
           })();
@@ -183,25 +191,36 @@ function RankingController($scope, $routeParams) {
          p.ellipse(sun.x, sun.y, sun.radius, sun.radius);
          
          p.fill(255, 255, 255);
-         p.text(sun.id, sun.x, sun.y+sun.radius);
+         p.text(String(sun.id), sun.x, sun.y);
        }
       })();
 
       // オーバーレイ
-      p.stroke(255, 255, 255, 255*bias);
-      p.fill(255, 255, 255, 255*(1.0-bias));
-      p.rect(0, 0, p.width, p.height);
+      if ($scope.sketch_state.busy) {
+        p.stroke(255, 255, 255);
+        p.fill(255, 255, 255);
+        p.rect(0, 0, p.width, p.height);
+        p.fill(0, 0, 0);
+        p.text("Loading...", p.width/2, p.height/2);
+      } else {
+        p.stroke(255, 255, 255, 255*(1.0-bias));
+        p.fill(255, 255, 255, 255*(1.0-bias));
+        p.rect(0, 0, p.width, p.height);
+      }
       
+      $scope.sketch_state.transcount++;
       $scope.sketch_state.framecount++;
+      
+      if (should_inc_theta) {
+        $scope.sketch_state.thetacount++;
+      }
     }
 
     // マウス押下時コールバック
     p.mousePressed = function() {
 
       var target = undefined;
-      
-      $scope.sketch_state.framecount = 0;
-      
+           
       for (var i=0; i<$scope.sketch_state.planets.length; ++i) {
         var planet = $scope.sketch_state.planets[i];
 
@@ -211,13 +230,56 @@ function RankingController($scope, $routeParams) {
         }
       }
       if (target) {
-        update_result(target, $scope.sketch_state);
+        
+        $scope.sketch_state.busy = true;
+        $scope.sketch_state.transcount = 0;
+        $scope.sketch_state.planets.length = 0;
+
+        if ("User" == target.type()) {
+          ranking.getGoals(target.id, function(data) {
+
+              for (var i in data) {
+                $scope.sketch_state.planets.push(new Test(data[i].ProblemId, data[i].Score/10));
+              }
+
+              $scope.sketch_state.set_sun(new User(target.id, 30));
+              $scope.sketch_state.busy = false;
+          });
+        } else {
+          ranking.getUsers(target.id, function(data) {
+              
+              console.log(data);
+              for (var i in data) {
+                $scope.sketch_state.planets.push(new User(data[i].UserId, data[i].Score/10));
+              }
+
+              $scope.sketch_state.set_sun(new Test(target.id, 30));
+              $scope.sketch_state.busy = false;
+          });
+        }
+         
+        //updateResult(target, $scope.sketch_state);
       }
     }
   }
   
   $scope.sketch_state = new SketchState();
-  update_result(new User("Futatsugi", 10), $scope.sketch_state);
+  
+  authenticate.userId = 42;
+  
+  $scope.sketch_state.busy = true;
+  $scope.sketch_state.transcount = 0;
+  $scope.sketch_state.planets.length = 0;
+
+  ranking.getGoals(authenticate.userId, function(data) {
+
+      for (var i in data) {
+        $scope.sketch_state.planets.push(new Test(data[i].ProblemId, data[i].Score/10));
+      }
+      
+      $scope.sketch_state.set_sun(new User(authenticate.userId, 30));
+      $scope.sketch_state.busy = false;
+  });
 
   var canvas = document.getElementById("ranking-canvas");
   var p = new Processing(canvas, sketch);

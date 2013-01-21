@@ -198,4 +198,20 @@ angular.module('cadmis.service', ['ngResource']).
 		};
 
 		return service;
-	});
+	}).
+  // ランキング取得サービス
+  factory('ranking', function($resource, $http) {
+    
+    var service = {};
+    
+    service.getUsers = function(id, handler) {
+      $http.get('/api/1/compute_rank?examId={0}'.format(id)).success(handler);
+    }
+
+    service.getGoals = function(id, handler) {
+      $http.get('/api/1/compute_rank?userId={0}'.format(id)).success(handler);
+    }
+    
+    return service;
+  }
+  );
