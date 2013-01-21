@@ -1,23 +1,13 @@
 <div>
 	<h2>Exam</h2>
-	<form class="form-horizontal" name="examForm">
+	<form ng-class="{hide: repeating == true || startTime != null || result != null}" class="form-horizontal" name="examForm">
 		<div class="control-group">
 			<div class="controls">
 				<button type="submit" class="btn" ng-disabled="busy" ng-click="startExam()">Start exam</button>
 			</div>
 		</div>
-<!-- 		<div class="control-group">
-			<div class="controls">
-				<input type="text" placeholder="Goal ID" ng-model="goalId" required>
-			</div>
-		</div>
-		<div class="control-group">
-			<div class="controls">
-				<button type="submit" class="btn" ng-disabled="examForm.$invalid || busy" ng-click="startExam()">Start exam</button>
-			</div>
-		</div> -->
 	</form>
-	<div ng-class="{hide: exam == null}">
+	<div ng-class="{hide: result != null || exam == null}">
 		<h3>Exam {{exam.id}}</h3>
 		<ul>
 			<li ng-repeat="problem in exam.problemList">
@@ -26,5 +16,11 @@
 		</ul>
 
 		<button type="submit" class="btn" ng-disabled="problemList.length == 0 || busy" ng-click="submitExam(exam)">Submit</button>
+	</div>
+	<div class="alert alert-info" ng-class="{hide: result == null}">{{resultMessage}}</div>
+	<div class="control-group" ng-class="{hide: result == null}" >
+		<div class="controls">
+			<button type="submit" class="btn" ng-disabled="busy" ng-click="startNextExam()">Start next exam</button>
+		</div>
 	</div>
 </div>
