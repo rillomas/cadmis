@@ -18,5 +18,7 @@
 				<problem ng-class="{active: solving}" model="problem"></problem>
 			</li>
 		</ul>
+
+		<button type="submit" class="btn" ng-disabled="problemList.length == 0 || busy" ng-click="submitExam()">Submit</button>
 	</div>
 </div>

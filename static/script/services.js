@@ -119,38 +119,44 @@ angular.module('cadmis.service', ['ngResource']).
 			var textId = "text";
 			var url = service.generateItemsUrl(goalId);
 			console.log("Getting exam from: " + url);
-			// $http.jsonp(url).success(onSuccess).error(onError);
 			$http.jsonp(url).success(function(data, status, headers, config) {
 
 				// 問題のリストを作る
+				var maxProblemNum = 10; // とりあえず最大10個
+				var dataList = data.items.slice(0, maxProblemNum);
 				var problemList = [];
-				angular.forEach(data.items, function(item) {
-					var hasCue = cueId in item;
-					var hasResponse = responseId in item;
-
+				angular.forEach(dataList, function(item) {
 					var target = item[cueId][contentId][textId];
 					var answer = item[responseId][contentId][textId];
+
+					// console.log("target: "+ target + " answer: " + answer);
 
 					// 問題ごとの選択肢をつくる
 					var distractorUrl = service.generateDistractorUrl(goalId, item.id);
 					$http.jsonp(distractorUrl).success(function(d, s, h ,c) {
-						console.log("Got distractor for " + distractorUrl);
+						// console.log("Got distractor for " + distractorUrl);
 						var optionList = [];
 						var distractorList = d.distractors[item.id][responseId];
 						angular.forEach(distractorList, function(opt) {
 							optionList.push({
-								description: opt.text,
-								selected: false
+								description: opt.text
 							});
 						});
+
+						// 答えを選択肢に含める
+						var index = Math.floor(Math.random() * optionList.length);
+						// console.log("Inserting answer to index: " + index);
+						var ans = { description: answer};
+						optionList.splice(index, 0, ans);
 						var problem = {
 							id: item.id,
 							target : target,
 							answer : answer,
 							optionList: optionList,
-							solving: false
+							solving: false,
+							selected : optionList[0].description
 						};
-						console.log(problem);
+						// console.log(problem);
 						problemList.push(problem);
 					}).error(function(d, s, h, c) {
 					});
