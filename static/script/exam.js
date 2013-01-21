@@ -1,22 +1,34 @@
 /**
  * 試験画面のコントローラー
  */
-function ExamController($scope, $routeParams, exam) {
+function ExamController($scope, $routeParams, exam, authenticate) {
 
-	$scope.goalId = "469230";
 	$scope.busy = false;
-	$scope.problemList = [];
+	$scope.exam = null;
+	$scope.startTime = null;
 
 	// 試験を開始する
-	$scope.startExam = function(goalId) {
+	$scope.startExam = function() {
 		$scope.busy = true;
-		exam.getExam(goalId, function(problemList) {
+		exam.getExam(function(exam) {
 			console.log("Get exam success");
-			$scope.problemList = problemList;
+			console.log(exam);
+			$scope.exam = exam;
 			$scope.busy = false;
-		}, function(problemList) {
+			$scope.startTime = new Date().getTime();
+		}, function(exam) {
 			console.log("Get exam failed");
-			console.log(data);
+			$scope.busy = false;
+		});
+	};
+
+	// 試験問題を提出する
+	$scope.submitExam = function(examResult) {
+		var endTime = new Date().getTime();
+		$scope.busy = true;
+		exam.submitExam(examResult, $scope.startTime, endTime, parseInt(authenticate.userId,10), function() {
+			$scope.busy = false;
+		}, function() {
 			$scope.busy = false;
 		});
 	};

@@ -3,20 +3,28 @@
 	<form class="form-horizontal" name="examForm">
 		<div class="control-group">
 			<div class="controls">
+				<button type="submit" class="btn" ng-disabled="busy" ng-click="startExam()">Start exam</button>
+			</div>
+		</div>
+<!-- 		<div class="control-group">
+			<div class="controls">
 				<input type="text" placeholder="Goal ID" ng-model="goalId" required>
 			</div>
 		</div>
 		<div class="control-group">
 			<div class="controls">
-				<button type="submit" class="btn" ng-disabled="examForm.$invalid || busy" ng-click="startExam(goalId)">Start exam</button>
+				<button type="submit" class="btn" ng-disabled="examForm.$invalid || busy" ng-click="startExam()">Start exam</button>
 			</div>
-		</div>
+		</div> -->
 	</form>
-	<div>
+	<div ng-class="{hide: exam == null}">
+		<h3>Exam {{exam.id}}</h3>
 		<ul>
-			<li ng-repeat="problem in problemList">
+			<li ng-repeat="problem in exam.problemList">
 				<problem ng-class="{active: solving}" model="problem"></problem>
 			</li>
 		</ul>
+
+		<button type="submit" class="btn" ng-disabled="problemList.length == 0 || busy" ng-click="submitExam(exam)">Submit</button>
 	</div>
 </div>

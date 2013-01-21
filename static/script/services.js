@@ -93,72 +93,108 @@ angular.module('cadmis.service', ['ngResource']).
 		return service;
 	}).
 	// 試験問題を取得するサービス
-	factory('exam', function($http) {
+	factory('exam', function($resource, $http) {
 
 		var service = {};
 		service.scheme = "http";
 		service.domain = "api.iknow.jp";
 		service.port = "80";
+		service.examId = "469230";
+
 		// service.itemId = "34891";
 
 		// 項目の一覧を取得するURLを生成する
-		service.generateItemsUrl = function(goalId) {
-			return "{0}://{1}:{2}/goals/{3}/items?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, goalId);
+		service.generateItemsUrl = function(examId) {
+			return "{0}://{1}:{2}/goals/{3}/items?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, examId);
 		};
 
 		// 項目ごとの選択肢を取得するURLを取得する
-		service.generateDistractorUrl = function(goalId, itemId) {
-			return "{0}://{1}:{2}/goals/{3}/items/{4}/distractors?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, goalId, itemId);
+		service.generateDistractorUrl = function(examId, itemId) {
+			return "{0}://{1}:{2}/goals/{3}/items/{4}/distractors?callback=JSON_CALLBACK".format(this.scheme, this.domain, this.port, examId, itemId);
 		};
 
 		// 試験問題を取得する
-		service.getExam = function (goalId, onSuccess, onError) {
+		service.getExam = function (onSuccess, onError) {
+			var examId = service.examId;
 			var cueId = "cue";
 			var responseId = "response";
 			var contentId = "content";
 			var textId = "text";
-			var url = service.generateItemsUrl(goalId);
+			var url = service.generateItemsUrl(examId);
 			console.log("Getting exam from: " + url);
-			// $http.jsonp(url).success(onSuccess).error(onError);
 			$http.jsonp(url).success(function(data, status, headers, config) {
 
+				var examOutput = { id: examId, problemList: [] };
 				// 問題のリストを作る
+				var maxProblemNum = 10; // とりあえず最大10個
+				var dataList = data.items.slice(0, maxProblemNum);
 				var problemList = [];
-				angular.forEach(data.items, function(item) {
-					var hasCue = cueId in item;
-					var hasResponse = responseId in item;
-
+				angular.forEach(dataList, function(item) {
 					var target = item[cueId][contentId][textId];
 					var answer = item[responseId][contentId][textId];
 
+					// console.log("target: "+ target + " answer: " + answer);
+
 					// 問題ごとの選択肢をつくる
-					var distractorUrl = service.generateDistractorUrl(goalId, item.id);
+					var distractorUrl = service.generateDistractorUrl(examId, item.id);
 					$http.jsonp(distractorUrl).success(function(d, s, h ,c) {
-						console.log("Got distractor for " + distractorUrl);
+						// console.log("Got distractor for " + distractorUrl);
 						var optionList = [];
 						var distractorList = d.distractors[item.id][responseId];
 						angular.forEach(distractorList, function(opt) {
 							optionList.push({
-								description: opt.text,
-								selected: false
+								description: opt.text
 							});
 						});
+
+						// 答えを選択肢に含める
+						var index = Math.floor(Math.random() * optionList.length);
+						// console.log("Inserting answer to index: " + index);
+						var ans = { description: answer};
+						optionList.splice(index, 0, ans);
 						var problem = {
 							id: item.id,
 							target : target,
 							answer : answer,
 							optionList: optionList,
-							solving: false
+							solving: false,
+							selected : optionList[0].description
 						};
-						console.log(problem);
+						// console.log(problem);
 						problemList.push(problem);
 					}).error(function(d, s, h, c) {
 					});
 				});
-				onSuccess(problemList);	
+				examOutput.problemList = problemList;
+				onSuccess(examOutput);	
 			}).error(function(data, status, headers, config) {
-				onError([]);
+				onError({});
 			});
+		};
+
+		// 問題を提出する
+		service.submitExam = function(examResult, startTime, finishedTime, userId, onSuccess, onError) {
+			var result = {
+				UserId: userId,
+				ExamId: parseInt(examResult.id, 10),
+				StartTime: startTime,
+				FinishedTime: finishedTime,
+				ProblemList: []
+			};
+
+			angular.forEach(examResult.problemList, function(problem) {
+				var correct = problem.selected == problem.answer;
+				var pr = {
+					ProblemId: problem.id,
+					Correct: correct
+				};
+				result.ProblemList.push(pr);
+			});
+
+			var Exam = $resource('/api/1/exam');
+			var newExam = new Exam();
+			newExam.Result = result;
+			newExam.$save({}, onSuccess, onError);
 		};
 
 		return service;
