@@ -5,11 +5,13 @@ import (
 	//"fmt"
 	// "appengine/user"
 	"appengine/datastore"
+	"appengine/urlfetch"
 	// "code.google.com/p/go.crypto/bcrypt"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	// "strconv"
+	"net/url"
+	"strconv"
 	// "time"
 )
 
@@ -41,17 +43,30 @@ type StoreExamResultRequest struct {
 	Result ExamResultMessage
 }
 
+type ProblemStatistics struct {
+	Id      int64   `json:"id"`
+	Total   int64   `json:"total"`
+	Correct int64   `json:"correct"`
+	Answer  bool    `json:"answer"`
+	Score   float64 `json:"score"`
+}
+
+type CalculatedProblemScore struct {
+	Id    int64   `json:"id"`
+	Score float64 `json:"score"`
+}
+
 // 問題
- type Problem struct {
- 	Id    int64
- 	Score int32
- }
+type Problem struct {
+	Id    int64
+	Score float64
+}
 
 // 試験
- type Exam struct {
- 	Id          int64
- 	ProblemList []*datastore.Key
- }
+type Exam struct {
+	Id          int64
+	ProblemList []*datastore.Key
+}
 
 // 問題の統計情報
 // type ProblemStatistics struct {
@@ -132,7 +147,136 @@ func processExamPostRequest(c appengine.Context, w http.ResponseWriter, r *http.
 	}
 
 	// 結果をサーバーに送りつけて評価してもらう
+	err = reEvaluateProblemScore(c, exam)
+	if err != nil {
+		c.Errorf("%s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
 
+func gatherProblemStatistics(c appengine.Context, result ExamResultMessage) ([]ProblemStatistics, error) {
+	problemNum := len(result.ProblemList)
+	statList := make([]ProblemStatistics, problemNum)
+	for i, p := range result.ProblemList {
+		var q = datastore.NewQuery(ProblemResultEntity).Filter("ProblemId=", p.ProblemId)
+
+		count, err := q.Count(c)
+		if err != nil {
+			return nil, err
+		}
+
+		var correctCount int64
+		t := q.Run(c)
+		for {
+			var p ProblemResult
+			_, err := t.Next(&p)
+			if err != nil {
+				if err == datastore.Done {
+					// 最後まで到達したので抜ける
+					break
+				} else {
+					return nil, err
+				}
+			}
+
+			if p.Correct {
+				correctCount++
+			}
+		}
+
+		stat := &statList[i]
+		stat.Id = p.ProblemId
+		stat.Total = int64(count)
+		stat.Correct = correctCount
+		stat.Answer = p.Correct
+		stat.Score = 10
+
+		// c.Infof("total %d answer %d", stat.total, stat.answer)
+	}
+	return statList, nil
+}
+
+func storeReevaluatedProblemScore(c appengine.Context, calculated []CalculatedProblemScore) error {
+	for _, cp := range calculated {
+		var q = datastore.NewQuery(ProblemEntity).Limit(1).Filter("Id=", cp.Id)
+
+		//keyList := *[]datastore.Key{}
+
+		t := q.Run(c)
+		for {
+			var p Problem
+			key, err := t.Next(&p)
+			if err != nil {
+				if err == datastore.Done {
+					// 最後まで到達したので抜ける
+					break
+				} else {
+					return err
+				}
+			}
+
+			p.Score = cp.Score
+			_, err = datastore.Put(c, key, &p)
+			if err != nil {
+				return err
+			}
+
+			//keyList = append(keyList, key)
+		}
+
+		// for _, k := range keyList {
+		// 	datastore.
+		// }
+	}
+	return nil
+}
+
+func reEvaluateProblemScore(c appengine.Context, result ExamResultMessage) error {
+	statList, err := gatherProblemStatistics(c, result)
+	if err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(statList)
+	if err != nil {
+		return err
+	}
+
+	targetUrl := "http://180.37.181.90:8080/score"
+	data := string(b)
+	userId := result.UserId
+
+	c.Infof("%s", data)
+
+	values := url.Values{}
+	values.Set("user", strconv.FormatInt(userId, 10))
+	values.Set("data", data)
+
+	client := urlfetch.Client(c)
+	res, err := client.PostForm(targetUrl, values)
+	if err != nil {
+		return err
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	c.Infof(string(buf))
+	calculated := []CalculatedProblemScore{}
+	err = json.Unmarshal(buf, &calculated)
+	if err != nil {
+		return err
+	}
+
+	// 再計算されたスコアをストアする
+	err = storeReevaluatedProblemScore(c, calculated)
+	if err != nil {
+		return nil
+	}
+
+	return nil
 }
 
 func handleExamRequest(w http.ResponseWriter, r *http.Request) {
